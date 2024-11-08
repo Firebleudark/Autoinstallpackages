@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Colors for better readability
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No color
+RED=${RED:-'\033[0;31m'}
+GREEN=${GREEN:-'\033[0;32m'}
+YELLOW=${YELLOW:-'\033[0;33m'}
+BLUE=${BLUE:-'\033[0;34m'}
+NC=${NC:-'\033[0m'} # No color
 
 # Add some introductory information
 clear
@@ -93,16 +93,19 @@ echo -e "${BLUE}     Starting Package Installation...          ${NC}"
 echo -e "${BLUE}-----------------------------------------------${NC}"
 
 # List of packages to install via pacman
-packages_pacman=("neovim" "steam" "goverlay" "lutris" "discord" "timeshift" "xorg-xhost")
+packages_pacman=("neovim" "steam" "goverlay" "lutris" "discord" "timeshift" "xorg-xhost" "htop" "yazi" "thunderbird" "fastfetch")
 
 # List of packages to install via AUR
-packages_aur=("arch-update" "heroic-games-launcher-bin")
+packages_aur=("arch-update" "heroic-games-launcher-bin" "prismlauncher-qt5" "visual-studio-code-bin")
 
 # Check if paru is installed for AUR
 echo -e "${YELLOW}Checking if paru is installed...${NC}"
 if ! pacman -Q paru &> /dev/null; then
     info "Installing paru..."
     if sudo pacman -S --noconfirm --needed paru; then
+        if ! pacman -Q paru &> /dev/null; then
+            error_exit "Error: paru installation verification failed. Please install paru manually."
+        fi
         success "paru was successfully installed."
     else
         error_exit "Error installing paru."
@@ -130,7 +133,7 @@ if [[ "$install_privacy_apps" == "y" || "$install_privacy_apps" == "Y" ]]; then
     install_package "torbrowser-launcher"
     install_aur_package "simplex-chat"
     install_aur_package "signal-desktop"
-    success "Privacy-protection applications (including Signal) installed successfully."
+    success "Privacy-protection applications installed successfully."
 else
     echo -e "${YELLOW}Skipping privacy-protection applications installation.${NC}"
 fi
@@ -145,7 +148,12 @@ echo -e "${BLUE}-----------------------------------------------${NC}"
 # Add user to the gamemode group
 
 echo -e "${BLUE} Add user to the gamemode group ${NC}"
-sudo usermod -aG gamemode $(whoami)
+if getent group gamemode > /dev/null 2>&1; then
+    sudo usermod -aG gamemode $(whoami)
+    success "User added to the gamemode group successfully."
+else
+    info "The 'gamemode' group does not exist. Skipping user addition."
+fi
 
 echo
 
@@ -156,11 +164,17 @@ echo -e "${BLUE}        Cleaning Up System Cache...            ${NC}"
 echo -e "${BLUE}-----------------------------------------------${NC}"
 # Function to clean the system
 clean_system() {
-    info "Cleaning the system cache manually..."
-    if sudo rm -rf /var/cache/pacman/pkg/*; then
-        success "System cache cleaned manually successfully."
+    info "Cleaning the system cache..."
+    echo -e "${YELLOW}Are you sure you want to clean the system cache? This will remove all cached packages. (y/n)${NC}"
+    read -r confirm_clean
+    if [[ "$confirm_clean" == "y" || "$confirm_clean" == "Y" ]]; then
+        if sudo paccache -r; then
+            success "System cache cleaned successfully."
+        else
+            error_exit "Error cleaning the system cache."
+        fi
     else
-        error_exit "Error cleaning the system cache manually."
+        info "System cache cleaning was skipped."
     fi
 }
 
@@ -170,6 +184,7 @@ clean_system
 echo
 
 echo -e "${BLUE}-----------------------------------------------${NC}"
+
 echo -e "${GREEN} All operations were completed successfully.  ${NC}"
 
 echo -e "${BLUE}-----------------------------------------------${NC}"
