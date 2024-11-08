@@ -65,6 +65,7 @@ The script will install the following core packages:
 - **visual studio code** : editor of code
 - **htop**
 - **fastfetch**
+- **thunderbird** : email desktop 
 
 The script will install the following core packages for privacy:
 
