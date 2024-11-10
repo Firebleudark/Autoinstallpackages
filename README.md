@@ -67,7 +67,7 @@ The script will install the following core packages:
 - **Timeshift**: System restore utility to protect your system from issues.
 - **Yazi**
 - **Prismlauncher** : minecraft launcher
-- **visual studio code** : editor of code
+- **Visual studio code** : editor of code
 - **Htop**
 - **Fastfetch**
 - **Thunderbird** : email desktop 
