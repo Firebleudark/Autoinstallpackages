@@ -65,12 +65,12 @@ The script will install the following core packages:
 - **Discord**: A communication app popular among gamers.
 - **Arch-Update**: Helps keep your system up to date easily.
 - **Timeshift**: System restore utility to protect your system from issues.
-- **yazi**
-- **prismlauncher** : minecraft launcher
+- **Yazi**
+- **Prismlauncher** : minecraft launcher
 - **visual studio code** : editor of code
-- **htop**
-- **fastfetch**
-- **thunderbird** : email desktop 
+- **Htop**
+- **Fastfetch**
+- **Thunderbird** : email desktop 
 
 The script will install the following core packages for privacy:
 
