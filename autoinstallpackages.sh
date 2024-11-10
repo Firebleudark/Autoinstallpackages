@@ -93,7 +93,7 @@ echo -e "${BLUE}     Starting Package Installation...          ${NC}"
 echo -e "${BLUE}-----------------------------------------------${NC}"
 
 # List of packages to install via pacman
-packages_pacman=("neovim" "steam" "goverlay" "lutris" "discord" "timeshift" "xorg-xhost" "htop" "yazi" "thunderbird" "fastfetch")
+packages_pacman=("neovim" "steam" "goverlay" "lutris" "discord" "timeshift" "xorg-xhost" "htop" "yazi" "thunderbird" "fastfetch" "libreoffice-fresh")
 
 # List of packages to install via AUR
 packages_aur=("arch-update" "heroic-games-launcher-bin" "prismlauncher-qt5" "visual-studio-code-bin")
