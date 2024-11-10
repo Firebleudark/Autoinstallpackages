@@ -4,6 +4,7 @@
 
 
 ![Arch Linux](https://img.shields.io/badge/os-Arch%20Linux-1793D1?logo=arch-linux&logoColor=white)
+[![AUR](https://img.shields.io/aur/version/autoinstallpackages.svg?color=1793D1&logo=arch-linux&logoColor=white)](https://aur.archlinux.org/packages/autoinstallpackages)
 ![Last Commit](https://img.shields.io/github/last-commit/Firebleudark/Autoinstallpackages)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
