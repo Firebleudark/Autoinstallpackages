@@ -3,7 +3,7 @@
 ![screenshot_13102024_164311](https://github.com/user-attachments/assets/163018ca-df21-4f6d-8757-64d68c745e02)
 
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Last Commit](https://img.shields.io/github/last-commit/USER/REPOSITORY)
+![Last Commit](https://img.shields.io/github/last-commit/Firebleudark/Autoinstallpackages/)
 
 
 ## Overview
