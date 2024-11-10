@@ -28,10 +28,10 @@ Follow these steps to prepare and execute the script:
 
 ### 2 Choices
 
-#### Use the AUR 
+### Use the AUR 
 - Follow this link : https://aur.archlinux.org/packages/autoinstallpackages
 
-### Clone and use this repo
+### Or clone and use this repo
 #### 1. Enable the Multilib Repository
 To use certain packages, you need to enable the multilib repository:
 
