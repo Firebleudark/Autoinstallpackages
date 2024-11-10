@@ -26,7 +26,13 @@ This script is designed to enhance your Arch Linux system for gaming and multime
 ## 🚀 Setup Instructions
 Follow these steps to prepare and execute the script:
 
-### 1. Enable the Multilib Repository
+### 2 Choices
+
+#### Use the AUR 
+- Follow this link : https://aur.archlinux.org/packages/autoinstallpackages
+
+### Clone and use this repo
+#### 1. Enable the Multilib Repository
 To use certain packages, you need to enable the multilib repository:
 
 Edit the `/etc/pacman.conf` file and uncomment the following lines:
@@ -35,7 +41,7 @@ Edit the `/etc/pacman.conf` file and uncomment the following lines:
 Include = /etc/pacman.d/multilib
 ```
 
-### 2. Install an AUR Helper (Paru)
+#### 2. Install an AUR Helper (Paru)
 The script requires `paru`, an AUR helper, to install some packages. You can install `paru` by following these steps:
 
 ```sh
@@ -45,7 +51,7 @@ cd paru
 makepkg -si
 ```
 
-### 3. Execute the Script
+#### 3. Execute the Script
 Clone the repository and run the installation script:
 
 ```sh
@@ -70,7 +76,8 @@ The script will install the following core packages:
 - **Visual studio code** : editor of code
 - **Htop**
 - **Fastfetch**
-- **Thunderbird** : email desktop 
+- **Thunderbird** : email desktop
+- **libre-office**  
 
 The script will install the following core packages for privacy:
 
