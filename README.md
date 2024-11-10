@@ -2,6 +2,8 @@
 
 ![screenshot_13102024_164311](https://github.com/user-attachments/assets/163018ca-df21-4f6d-8757-64d68c745e02)
 
+
+![Arch Linux](https://img.shields.io/badge/os-Arch%20Linux-1793D1?logo=arch-linux&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Last Commit](https://img.shields.io/github/last-commit/Firebleudark/Autoinstallpackages)
 
