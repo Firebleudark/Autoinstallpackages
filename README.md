@@ -78,7 +78,7 @@ The script will install the following core packages:
 - **Htop**
 - **Fastfetch**
 - **Thunderbird** : email desktop
-- **libre-office**  
+- **Libre-office**  
 
 The script will install the following core packages for privacy:
 
