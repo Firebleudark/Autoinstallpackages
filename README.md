@@ -56,7 +56,7 @@ makepkg -si
 Clone the repository and run the installation script:
 
 ```sh
-git clone https://github.com/Firebleu/Autoinstallpackages
+git clone https://github.com/Firebleudark/Autoinstallpackages
 cd Autoinstallpackages
 chmod +x ./autoinstallpackages.sh   
 ./autoinstallpackages.sh
