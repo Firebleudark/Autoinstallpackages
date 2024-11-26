@@ -95,3 +95,6 @@ The script will install the following core packages for privacy:
 
 Feel free to use this script to enhance your Arch Linux experience and get set up quickly for gaming and multimedia!
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Firebleudark/Autoinstallpackages&type=Date)](https://star-history.com/#Firebleudark/Autoinstallpackages&Date)
