@@ -88,8 +88,8 @@ The script will install the following core packages for privacy:
 
 Add support for Flatpak :
 
--**Bottles**: Install games with bottles
--**Easy Flatpak**: Install Flatpak application graphically
+- **Bottles**: Install games with bottles
+- **Easy Flatpak**: Install Flatpak application graphically
 
 ## 📜 Important Notes
 - **Internet Connection**: Ensure you have an active internet connection during installation.
