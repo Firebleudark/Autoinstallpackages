@@ -85,7 +85,6 @@ install_aur_package() {
     fi
 }
 
-
 echo -e "${BLUE}-----------------------------------------------${NC}"
 
 echo -e "${BLUE}     Starting Package Installation...          ${NC}"
@@ -112,6 +111,17 @@ if ! pacman -Q paru &> /dev/null; then
     fi
 fi
 success "Paru is installed."
+
+# Ask the user if they want to install Flatpak
+echo -e "${YELLOW}Would you like to install Flatpak for additional software support? (y/n)${NC}"
+read -r install_flatpak
+if [[ "$install_flatpak" == "y" || "$install_flatpak" == "Y" ]]; then
+    echo -e "${YELLOW}Installing Flatpak...${NC}"
+    install_package "flatpak"
+    success "Flatpak was successfully installed."
+else
+    echo -e "${YELLOW}Skipping Flatpak installation.${NC}"
+fi
 
 # Install required packages via pacman
 for pkg in "${packages_pacman[@]}"; do
