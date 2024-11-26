@@ -83,7 +83,9 @@ The script will install the following core packages:
 The script will install the following core packages for privacy:
 
 - **Tor-browser**: Best browner for privacy
-- **Signal & SimpleX**: Chat in security 
+- **Signal & SimpleX**: Chat in security
+
+Add support for Flatpak
 
 ## 📜 Important Notes
 - **Internet Connection**: Ensure you have an active internet connection during installation.
