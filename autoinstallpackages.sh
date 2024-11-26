@@ -53,7 +53,20 @@ echo -e "${YELLOW}Checking if the system is running Arch Linux...${NC}"
 if [[ ! -f /etc/os-release ]] || ! grep -q "Arch Linux" /etc/os-release; then
     error_exit "Error: this script is only intended for Arch Linux."
 fi
-success "Arch Linux detected. Proceeding..."
+success "Arch Linux detected. Proceeding…"
+
+# Detect if the system has a GPU and install the appropriate drivers
+echo -e "${YELLOW}Detecting GPU type...${NC}"
+GPU_INFO=$(lspci | grep -i "vga\|3d")
+if echo "$GPU_INFO" | grep -iq "amd"; then
+    info "AMD GPU detected. Adding vulkan-radeon to the package list..."
+    packages_pacman+=("vulkan-radeon" "lib32-vulkan-radeon")
+elif echo "$GPU_INFO" | grep -iq "nvidia"; then
+    info "NVIDIA GPU detected. Adding nouveau and nvidia-dkms to the package list..."
+    packages_pacman+=("xf86-video-nouveau" "nvidia-open-dkms" "lib32-nvidia-utils")
+else
+    info "No compatible discrete GPU detected or unable to determine GPU type. Skipping GPU driver installation."
+fi
 
 # Function to install a package if not already installed
 install_package() {
@@ -92,25 +105,10 @@ echo -e "${BLUE}     Starting Package Installation...          ${NC}"
 echo -e "${BLUE}-----------------------------------------------${NC}"
 
 # List of packages to install via pacman
-packages_pacman=("neovim" "steam" "goverlay" "lutris" "discord" "timeshift" "xorg-xhost" "htop" "yazi" "thunderbird" "fastfetch" "libreoffice-fresh")
+packages_pacman=("neovim" "steam" "goverlay" "lutris" "discord" "timeshift" "xorg-xhost" "htop" "yazi" "thunderbird" "fastfetch" "libreoffice-fresh" "gamemode")
 
 # List of packages to install via AUR
 packages_aur=("arch-update" "heroic-games-launcher-bin" "prismlauncher-qt5" "visual-studio-code-bin")
-
-# Check if paru is installed for AUR
-echo -e "${YELLOW}Checking if paru is installed...${NC}"
-if ! pacman -Q paru &> /dev/null; then
-    info "Installing paru..."
-    if sudo pacman -S --noconfirm --needed paru; then
-        if ! pacman -Q paru &> /dev/null; then
-            error_exit "Error: paru installation verification failed. Please install paru manually."
-        fi
-        success "paru was successfully installed."
-    else
-        error_exit "Error installing paru."
-    fi
-fi
-success "Paru is installed."
 
 # Ask the user if they want to install Flatpak
 echo -e "${YELLOW}Would you like to install Flatpak for additional software support? (y/n)${NC}"
@@ -119,6 +117,15 @@ if [[ "$install_flatpak" == "y" || "$install_flatpak" == "Y" ]]; then
     echo -e "${YELLOW}Installing Flatpak...${NC}"
     install_package "flatpak"
     success "Flatpak was successfully installed."
+    echo -e "${YELLOW}Would you like to install recommended Flatpak applications (Bottles and EasyFlatpak)? (y/n)${NC}"
+    read -r install_recommended_flatpaks
+    if [[ "$install_recommended_flatpaks" == "y" || "$install_recommended_flatpaks" == "Y" ]]; then
+        flatpak install -y flathub com.usebottles.bottles
+        flatpak install -y flathub org.dupot.easyflatpak
+        success "Recommended Flatpak applications installed successfully."
+    else
+        echo -e "${YELLOW}Skipping recommended Flatpak applications installation.${NC}"
+    fi
 else
     echo -e "${YELLOW}Skipping Flatpak installation.${NC}"
 fi
