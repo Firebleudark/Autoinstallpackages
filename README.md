@@ -12,7 +12,7 @@
 ## Overview
 **AutoInstallPackages** is a streamlined solution to help you automatically install essential packages on Arch Linux, especially designed for gaming and multimedia purposes. This script performs system updates, installs crucial software for a great gaming and multimedia experience, and cleans up unnecessary files.
 
-> **⚠️ Warning**: This is not a post-installation script. Ensure you already have a working Arch Linux system (preferably with drivers installed). Its purpose is to quickly install selected packages for an enhanced experience.
+> **⚠️ Warning**: This is not a post-installation script. Ensure you already have a working Arch Linux system. Its purpose is to quickly install selected packages and drivers for an enhanced experience.
 
 ## 🚀 Features
 - **Automated Package Installation**: Installs required packages for gaming and multimedia without user intervention.
@@ -21,8 +21,9 @@
 ## 💡 Concept
 This script is designed to enhance your Arch Linux system for gaming and multimedia use. It operates in three stages:
 1. **System Update**: Brings your system up to date.
-2. **Package Installation**: Automatically installs core gaming and multimedia software.
-3. **System Cleanup**: Frees up space by cleaning unnecessary cache files.
+2. **Driver**: Detect driver and install correct driver
+3. **Package Installation**: Automatically installs core gaming and multimedia software.
+4. **System Cleanup**: Frees up space by cleaning unnecessary cache files.
 
 ## 🚀 Setup Instructions
 Follow these steps to prepare and execute the script:
@@ -85,7 +86,10 @@ The script will install the following core packages for privacy:
 - **Tor-browser**: Best browner for privacy
 - **Signal & SimpleX**: Chat in security
 
-Add support for Flatpak
+Add support for Flatpak :
+
+-**Bottles**: Install games with bottles
+-**Easy Flatpak**: Install Flatpak application graphically
 
 ## 📜 Important Notes
 - **Internet Connection**: Ensure you have an active internet connection during installation.
