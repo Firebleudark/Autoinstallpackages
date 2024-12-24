@@ -28,12 +28,7 @@ This script is designed to enhance your Arch Linux system for gaming and multime
 ## 🚀 Setup Instructions
 Follow these steps to prepare and execute the script:
 
-### 2 Choices
-
-### Use the AUR 
-- Follow this link : https://aur.archlinux.org/packages/autoinstallpackages
-
-### Or clone and use this repo
+### 🚦 Before everything !
 #### 1. Enable the Multilib Repository
 To use certain packages, you need to enable the multilib repository:
 
@@ -53,9 +48,12 @@ cd paru
 makepkg -si
 ```
 
-#### 3. Execute the Script
-Clone the repository and run the installation script:
+### 🔀After you have two choices :
 
+### Use the AUR 
+- Follow this link : https://aur.archlinux.org/packages/autoinstallpackages
+
+### Or clone and use this repo
 ```sh
 git clone https://github.com/Firebleudark/Autoinstallpackages
 cd Autoinstallpackages
