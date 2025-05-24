@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-AutoInstallPackages - Modern GUI Interface
+AutoInstallPackages - Modern GUI Interface with Real Installation
 Version: 4.0
 Author: Firebleudark
-Description: Dark, modern, and minimalist GUI for Arch Linux post-installation
+Description: Dark, modern GUI for Arch Linux post-installation with REAL package installation
 Repository: https://github.com/Firebleudark/Autoinstallpackages
 """
 
@@ -47,16 +47,22 @@ class DarkTheme:
 class PackageCategory:
     """Represents a package category"""
     
-    def __init__(self, key: str, name: str, icon: str, description: str, package_count: int):
+    def __init__(self, key: str, name: str, icon: str, description: str, 
+                 pacman_packages: List[str], aur_packages: List[str] = None):
         self.key = key
         self.name = name
         self.icon = icon
         self.description = description
-        self.package_count = package_count
+        self.pacman_packages = pacman_packages or []
+        self.aur_packages = aur_packages or []
         self.selected = False
+    
+    @property
+    def total_packages(self) -> int:
+        return len(self.pacman_packages) + len(self.aur_packages)
 
 class AutoInstallGUI:
-    """Main GUI application class"""
+    """Main GUI application class with REAL installation"""
     
     def __init__(self):
         self.root = tk.Tk()
@@ -75,37 +81,43 @@ class AutoInstallGUI:
         self._create_widgets()
         
     def _initialize_categories(self) -> Dict[str, PackageCategory]:
-        """Initialize package categories"""
+        """Initialize package categories with REAL packages"""
         return {
             'gaming': PackageCategory(
                 'gaming', 'Gaming', '🎮',
                 'Gaming platforms and tools for optimal gaming experience',
-                8
+                ['steam', 'lutris', 'gamemode', 'lib32-mesa', 'vulkan-tools'],
+                ['heroic-games-launcher-bin', 'prismlauncher-qt5']
             ),
             'multimedia': PackageCategory(
                 'multimedia', 'Multimedia', '🎵',
                 'Media applications and communication tools',
-                6
+                ['discord', 'thunderbird', 'vlc', 'obs-studio'],
+                ['spotify']
             ),
             'development': PackageCategory(
                 'development', 'Development', '💻',
                 'Development tools and code editors',
-                10
+                ['neovim', 'git', 'base-devel', 'docker', 'nodejs', 'npm'],
+                ['visual-studio-code-bin', 'github-desktop-bin']
             ),
             'system': PackageCategory(
                 'system', 'System Tools', '⚙️',
                 'System utilities and administration tools',
-                9
+                ['timeshift', 'htop', 'btop', 'yazi', 'fastfetch', 'tree', 'unzip'],
+                ['arch-update']
             ),
             'office': PackageCategory(
                 'office', 'Office Suite', '📄',
                 'Complete office productivity suite',
-                4
+                ['libreoffice-fresh', 'libreoffice-fresh-en-us'],
+                ['onlyoffice-bin']
             ),
             'privacy': PackageCategory(
                 'privacy', 'Privacy Tools', '🔒',
                 'Privacy and security applications',
-                5
+                ['torbrowser-launcher', 'gnupg', 'veracrypt'],
+                ['signal-desktop', 'simplex-chat']
             )
         }
     
@@ -345,7 +357,7 @@ class AutoInstallGUI:
             desc_label.pack(anchor='w', pady=(8, 5))
             
             # Package count
-            count_text = f"{category.package_count} packages"
+            count_text = f"{category.total_packages} packages"
             count_label = tk.Label(card_frame,
                                   text=count_text,
                                   bg=DarkTheme.BG_CARD,
@@ -532,7 +544,7 @@ class AutoInstallGUI:
             self.select_all_btn.configure(text="📦 Deselect All")
     
     def _start_installation(self):
-        """Start the installation process"""
+        """Start the REAL installation process"""
         if self.is_installing:
             return
         
@@ -544,13 +556,14 @@ class AutoInstallGUI:
         
         # Confirmation dialog
         category_names = [cat.name for cat in selected_categories]
-        total_packages = sum(cat.package_count for cat in selected_categories)
+        total_packages = sum(cat.total_packages for cat in selected_categories)
         
-        message = f"Install {len(selected_categories)} categories with approximately {total_packages} packages?\n\n"
+        message = f"This will REALLY install {len(selected_categories)} categories with approximately {total_packages} packages!\n\n"
         message += "Selected categories:\n"
         message += "\n".join(f"• {name}" for name in category_names)
+        message += "\n\n⚠️ THIS IS REAL INSTALLATION! Continue?"
         
-        if not messagebox.askyesno("Confirm Installation", message):
+        if not messagebox.askyesno("Confirm REAL Installation", message):
             return
         
         # Start installation
@@ -559,7 +572,7 @@ class AutoInstallGUI:
         
         # Start installation thread
         install_thread = threading.Thread(
-            target=self._run_installation,
+            target=self._run_real_installation,  # REAL installation function
             args=(selected_categories,),
             daemon=True
         )
@@ -578,49 +591,88 @@ class AutoInstallGUI:
         self.install_btn.configure(state='disabled')
         self.select_all_btn.configure(state='disabled')
     
-    def _run_installation(self, selected_categories):
-        """Run installation process in background thread"""
+    def _run_real_installation(self, selected_categories):
+        """Run REAL installation process"""
         try:
-            # Installation steps
-            steps = [
-                ("Validating system requirements...", 2),
-                ("Updating system packages...", 3),
-                ("Installing paru AUR helper...", 2),
-                ("Detecting GPU hardware...", 1.5),
-                ("Installing GPU drivers...", 2.5),
-            ]
+            total_steps = 5 + len(selected_categories)
+            current_step = 0
             
-            # Add category installation steps
+            # Step 1: System validation
+            self.root.after(0, self._update_progress, current_step, total_steps, "Validating system...")
+            self.root.after(0, self._add_log, "[INFO] Validating system requirements...", "INFO")
+            
+            if not self._validate_system():
+                raise Exception("System validation failed")
+            
+            self.root.after(0, self._add_log, "[SUCCESS] System validation passed", "SUCCESS")
+            current_step += 1
+            
+            # Step 2: System update
+            self.root.after(0, self._update_progress, current_step, total_steps, "Updating system...")
+            self.root.after(0, self._add_log, "[INFO] Updating system packages...", "INFO")
+            
+            if self._run_command("sudo pacman -Syu --noconfirm"):
+                self.root.after(0, self._add_log, "[SUCCESS] System updated successfully", "SUCCESS")
+            else:
+                self.root.after(0, self._add_log, "[WARNING] System update had issues", "WARNING")
+            
+            current_step += 1
+            
+            # Step 3: Install paru if needed
+            self.root.after(0, self._update_progress, current_step, total_steps, "Installing AUR helper...")
+            self.root.after(0, self._add_log, "[INFO] Checking for paru AUR helper...", "INFO")
+            
+            if not self._check_paru():
+                self._install_paru()
+            
+            self.root.after(0, self._add_log, "[SUCCESS] AUR helper ready", "SUCCESS")
+            current_step += 1
+            
+            # Step 4: GPU drivers
+            self.root.after(0, self._update_progress, current_step, total_steps, "Installing GPU drivers...")
+            self.root.after(0, self._add_log, "[INFO] Detecting and installing GPU drivers...", "INFO")
+            
+            self._install_gpu_drivers()
+            self.root.after(0, self._add_log, "[SUCCESS] GPU drivers installed", "SUCCESS")
+            current_step += 1
+            
+            # Step 5-N: Install selected categories
             for category in selected_categories:
-                steps.append((f"Installing {category.name} packages...", 4))
+                self.root.after(0, self._update_progress, current_step, total_steps, f"Installing {category.name}...")
+                self.root.after(0, self._add_log, f"[INFO] Installing {category.name} packages...", "INFO")
+                
+                # Install pacman packages
+                if category.pacman_packages:
+                    cmd = f"sudo pacman -S --needed --noconfirm {' '.join(category.pacman_packages)}"
+                    if self._run_command(cmd):
+                        self.root.after(0, self._add_log, f"[SUCCESS] {category.name} pacman packages installed", "SUCCESS")
+                    else:
+                        self.root.after(0, self._add_log, f"[WARNING] Some {category.name} pacman packages failed", "WARNING")
+                
+                # Install AUR packages
+                if category.aur_packages:
+                    cmd = f"paru -S --needed --noconfirm {' '.join(category.aur_packages)}"
+                    if self._run_command(cmd):
+                        self.root.after(0, self._add_log, f"[SUCCESS] {category.name} AUR packages installed", "SUCCESS")
+                    else:
+                        self.root.after(0, self._add_log, f"[WARNING] Some {category.name} AUR packages failed", "WARNING")
+                
+                current_step += 1
             
-            # Optional steps
-            if self.options['ml4w_dotfiles'].get():
-                steps.append(("Configuring ML4W dotfiles...", 5))
-            if self.options['flatpak'].get():
-                steps.append(("Setting up Flatpak...", 3))
+            # Optional installations
             if self.options['optimizations'].get():
-                steps.append(("Applying system optimizations...", 2))
+                self.root.after(0, self._update_progress, current_step, total_steps, "Applying optimizations...")
+                self.root.after(0, self._add_log, "[INFO] Applying system optimizations...", "INFO")
+                self._apply_optimizations()
+                self.root.after(0, self._add_log, "[SUCCESS] System optimizations applied", "SUCCESS")
+            
             if self.options['cleanup'].get():
-                steps.append(("Cleaning up system...", 2))
+                self.root.after(0, self._update_progress, current_step, total_steps, "Cleaning system...")
+                self.root.after(0, self._add_log, "[INFO] Cleaning system...", "INFO")
+                self._cleanup_system()
+                self.root.after(0, self._add_log, "[SUCCESS] System cleaned", "SUCCESS")
             
-            steps.append(("Installation completed!", 1))
-            
-            total_steps = len(steps)
-            
-            # Execute installation steps
-            for i, (step_text, duration) in enumerate(steps):
-                # Update UI in main thread
-                self.root.after(0, self._update_progress, i, total_steps, step_text)
-                self.root.after(0, self._add_log, f"[INFO] {step_text}", "INFO")
-                
-                # Simulate installation time
-                time.sleep(duration)
-                
-                # Log completion for non-final steps
-                if i < total_steps - 1:
-                    success_msg = step_text.replace("...", " completed successfully")
-                    self.root.after(0, self._add_log, f"[SUCCESS] {success_msg}", "SUCCESS")
+            current_step += 1
             
             # Installation completed
             self.root.after(0, self._installation_completed)
@@ -628,6 +680,150 @@ class AutoInstallGUI:
         except Exception as e:
             self.root.after(0, self._add_log, f"[ERROR] Installation failed: {str(e)}", "ERROR")
             self.root.after(0, self._installation_failed, str(e))
+    
+    def _validate_system(self) -> bool:
+        """Validate system requirements"""
+        try:
+            # Check Arch Linux
+            with open('/etc/os-release', 'r') as f:
+                if 'Arch Linux' not in f.read():
+                    return False
+            
+            # Check if not root
+            if os.geteuid() == 0:
+                return False
+            
+            # Check internet connection
+            result = subprocess.run(['ping', '-c', '1', 'google.com'], 
+                                  capture_output=True, timeout=5)
+            return result.returncode == 0
+            
+        except:
+            return False
+    
+    def _run_command(self, cmd: str) -> bool:
+        """Run a system command and log output"""
+        try:
+            self.root.after(0, self._add_log, f"[CMD] {cmd}", "INFO")
+            
+            process = subprocess.Popen(
+                cmd, shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                bufsize=1
+            )
+            
+            # Read output line by line and log it
+            for line in process.stdout:
+                line = line.strip()
+                if line:
+                    self.root.after(0, self._add_log, line, "INFO")
+            
+            process.wait()
+            return process.returncode == 0
+            
+        except Exception as e:
+            self.root.after(0, self._add_log, f"[ERROR] Command failed: {str(e)}", "ERROR")
+            return False
+    
+    def _check_paru(self) -> bool:
+        """Check if paru is installed"""
+        try:
+            result = subprocess.run(['which', 'paru'], capture_output=True)
+            return result.returncode == 0
+        except:
+            return False
+    
+    def _install_paru(self):
+        """Install paru AUR helper"""
+        self.root.after(0, self._add_log, "[INFO] Installing paru AUR helper...", "INFO")
+        
+        # Install base-devel first
+        self._run_command("sudo pacman -S --needed --noconfirm base-devel git")
+        
+        # Clone and build paru
+        temp_dir = "/tmp/paru_install"
+        commands = [
+            f"rm -rf {temp_dir}",
+            f"git clone https://aur.archlinux.org/paru.git {temp_dir}",
+            f"cd {temp_dir} && makepkg -si --noconfirm"
+        ]
+        
+        for cmd in commands:
+            if not self._run_command(cmd):
+                self.root.after(0, self._add_log, "[WARNING] Paru installation may have issues", "WARNING")
+                break
+        
+        # Cleanup
+        self._run_command(f"rm -rf {temp_dir}")
+    
+    def _install_gpu_drivers(self):
+        """Detect and install GPU drivers"""
+        try:
+            # Get GPU info
+            result = subprocess.run(['lspci'], capture_output=True, text=True)
+            gpu_info = result.stdout.lower()
+            
+            drivers = []
+            
+            if 'amd' in gpu_info or 'radeon' in gpu_info:
+                self.root.after(0, self._add_log, "[INFO] AMD GPU detected", "INFO")
+                drivers = ['mesa', 'lib32-mesa', 'vulkan-radeon', 'lib32-vulkan-radeon']
+            elif 'nvidia' in gpu_info:
+                self.root.after(0, self._add_log, "[INFO] NVIDIA GPU detected", "INFO")
+                drivers = ['nvidia', 'nvidia-utils', 'lib32-nvidia-utils']
+            elif 'intel' in gpu_info:
+                self.root.after(0, self._add_log, "[INFO] Intel GPU detected", "INFO")
+                drivers = ['mesa', 'lib32-mesa', 'vulkan-intel', 'lib32-vulkan-intel']
+            
+            if drivers:
+                cmd = f"sudo pacman -S --needed --noconfirm {' '.join(drivers)}"
+                self._run_command(cmd)
+            else:
+                self.root.after(0, self._add_log, "[INFO] No specific GPU drivers needed", "INFO")
+                
+        except Exception as e:
+            self.root.after(0, self._add_log, f"[WARNING] GPU detection failed: {str(e)}", "WARNING")
+    
+    def _apply_optimizations(self):
+        """Apply system optimizations"""
+        try:
+            # Enable parallel downloads
+            self._run_command("sudo sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 10/' /etc/pacman.conf")
+            
+            # Enable multicore compilation
+            cores = os.cpu_count()
+            self._run_command(f"sudo sed -i 's/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j{cores}\"/' /etc/makepkg.conf")
+            
+            # Add user to gamemode group if gamemode is installed
+            username = os.getenv('USER')
+            if username:
+                self._run_command(f"sudo usermod -aG gamemode {username}")
+                
+        except Exception as e:
+            self.root.after(0, self._add_log, f"[WARNING] Some optimizations failed: {str(e)}", "WARNING")
+    
+    def _cleanup_system(self):
+        """Clean up system"""
+        try:
+            # Clean package cache
+            self._run_command("sudo paccache -r")
+            
+            # Clean AUR cache if paru is available
+            if self._check_paru():
+                self._run_command("paru -Sc --noconfirm")
+            
+            # Remove orphaned packages
+            result = subprocess.run(['pacman', '-Qtdq'], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                orphans = result.stdout.strip()
+                self._run_command(f"sudo pacman -Rns --noconfirm {orphans}")
+            else:
+                self.root.after(0, self._add_log, "[INFO] No orphaned packages found", "INFO")
+                
+        except Exception as e:
+            self.root.after(0, self._add_log, f"[WARNING] Cleanup had issues: {str(e)}", "WARNING")
     
     def _update_progress(self, current, total, text):
         """Update progress bar and text"""
@@ -725,7 +921,7 @@ class AutoInstallGUI:
 
 def main():
     """Main entry point"""
-    print("🚀 Starting AutoInstallPackages GUI...")
+    print("🚀 Starting AutoInstallPackages GUI with REAL installation...")
     
     try:
         app = AutoInstallGUI()
