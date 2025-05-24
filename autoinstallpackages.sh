@@ -1,207 +1,348 @@
 #!/bin/bash
 
-# Colors for better readability
-RED=${RED:-'\033[0;31m'}
-GREEN=${GREEN:-'\033[0;32m'}
-YELLOW=${YELLOW:-'\033[0;33m'}
-BLUE=${BLUE:-'\033[0;34m'}
-NC=${NC:-'\033[0m'} # No color
+# AutoInstallPackages - Enhanced Arch Linux Post-Installation Script
+# Version: 4.0
+# Author: Firebleudark
+# Description: Modern post-installation script with GUI support for Arch Linux
+# Repository: https://github.com/Firebleudark/Autoinstallpackages
 
-# Add some introductory information
-clear
+set -euo pipefail
 
-echo -e "${BLUE}-----------------------------------------------${NC}"
+# Script configuration
+readonly SCRIPT_NAME="AutoInstallPackages"
+readonly SCRIPT_VERSION="4.0"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly LOG_FILE="/tmp/autoinstallpackages.log"
 
-echo -e "${BLUE}   Welcome to the Arch Linux Setup Script!     ${NC}"
+# Colors for output
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly CYAN='\033[0;36m'
+readonly BOLD='\033[1m'
+readonly NC='\033[0m'
 
-echo -e "${BLUE}-----------------------------------------------${NC}"
-echo -e "${YELLOW}This script will update your system, install essential packages for gaming and multimedia, and clean up unnecessary files.${NC}"
-
-# Check if the script is run as root
-if [ "$EUID" -eq 0 ]; then
-    echo -e "${RED}Error: this script should not be run as root.${NC}"
-    exit 1
-fi
-
-echo -e "${YELLOW}Checking for sudo permissions...${NC}"
-# Request sudo permissions at the beginning
-if ! sudo -v; then
-    echo -e "${RED}Error: please run the script with sudo permissions.${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}Sudo permissions obtained successfully.${NC}"
-
-# Function to display an error message in red and exit
-error_exit() {
-    echo -e "${RED}$1${NC}" 1>&2
-    exit 1
+# Logging functions
+log() {
+    local level="$1"
+    shift
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $*" | tee -a "$LOG_FILE"
 }
 
-# Function to display a progress message
 info() {
-    echo -e "${YELLOW}$1${NC}"
+    log "INFO" "$1"
+    echo -e "${CYAN}ℹ${NC} $1"
 }
 
-# Function to display a success message
 success() {
-    echo -e "${GREEN}$1${NC}"
+    log "SUCCESS" "$1"
+    echo -e "${GREEN}✓${NC} $1"
 }
 
-# Check if the distribution is Arch Linux
-echo -e "${YELLOW}Checking if the system is running Arch Linux...${NC}"
-if [[ ! -f /etc/os-release ]] || ! grep -q "Arch Linux" /etc/os-release; then
-    error_exit "Error: this script is only intended for Arch Linux."
-fi
-success "Arch Linux detected. Proceeding…"
+warning() {
+    log "WARNING" "$1"
+    echo -e "${YELLOW}⚠${NC} $1"
+}
 
-# Detect if the system has a GPU and install the appropriate drivers
-echo -e "${YELLOW}Detecting GPU type...${NC}"
-GPU_INFO=$(lspci | grep -i "vga\|3d")
-if echo "$GPU_INFO" | grep -iq "amd"; then
-    info "AMD GPU detected. Adding vulkan-radeon to the package list..."
-    packages_pacman+=("vulkan-radeon" "lib32-vulkan-radeon")
-elif echo "$GPU_INFO" | grep -iq "nvidia"; then
-    info "NVIDIA GPU detected. Adding nouveau and nvidia-dkms to the package list..."
-    packages_pacman+=("xf86-video-nouveau" "nvidia-open-dkms" "lib32-nvidia-utils")
-else
-    info "No compatible discrete GPU detected or unable to determine GPU type. Skipping GPU driver installation."
-fi
+error() {
+    log "ERROR" "$1"
+    echo -e "${RED}✗${NC} $1" >&2
+}
 
-# Function to install a package if not already installed
-install_package() {
-    local package="$1"
-    if ! pacman -Q $package &> /dev/null; then
-        info "Installing $package..."
-        if sudo pacman -S --noconfirm --needed $package; then
-            success "$package was successfully installed."
-        else
-            error_exit "Error installing $package."
+error_exit() {
+    error "$1"
+    exit 1
+}
+
+# Header display
+print_header() {
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${BOLD}              $SCRIPT_NAME v$SCRIPT_VERSION                     ║${NC}"
+    echo -e "${CYAN}║${YELLOW}     Enhanced Arch Linux Post-Installation Script        ${NC}${CYAN}║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════╝${NC}"
+    echo
+}
+
+# System validation
+validate_system() {
+    info "Validating system requirements..."
+    
+    # Check if Arch Linux
+    if [[ ! -f /etc/os-release ]] || ! grep -q "Arch Linux" /etc/os-release; then
+        error_exit "This script is only for Arch Linux systems"
+    fi
+    success "Arch Linux detected"
+    
+    # Check if running as root
+    if [[ $EUID -eq 0 ]]; then
+        error_exit "Do not run this script as root"
+    fi
+    success "Running as regular user"
+    
+    # Check sudo permissions
+    if ! sudo -v; then
+        error_exit "Sudo permissions required"
+    fi
+    success "Sudo permissions validated"
+    
+    # Check internet connection
+    if ! ping -c 1 google.com &>/dev/null; then
+        error_exit "Internet connection required"
+    fi
+    success "Internet connection available"
+}
+
+# Install dependencies for GUI
+install_gui_dependencies() {
+    info "Installing GUI dependencies..."
+    
+    local gui_deps=("python" "tk")
+    local missing_deps=()
+    
+    for dep in "${gui_deps[@]}"; do
+        if ! pacman -Q "$dep" &>/dev/null; then
+            missing_deps+=("$dep")
         fi
+    done
+    
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        info "Installing missing dependencies: ${missing_deps[*]}"
+        sudo pacman -S --needed --noconfirm "${missing_deps[@]}"
+        success "GUI dependencies installed"
     else
-        success "$package is already installed."
+        success "GUI dependencies already installed"
+    fi
+    
+    # Test Python and tkinter
+    if ! python3 -c "import tkinter" 2>/dev/null; then
+        error_exit "Python tkinter not working properly"
+    fi
+    success "Python GUI support verified"
+}
+
+# Install paru AUR helper
+install_paru() {
+    if command -v paru &>/dev/null; then
+        success "Paru AUR helper already installed"
+        return 0
+    fi
+    
+    info "Installing paru AUR helper..."
+    
+    # Install base-devel if not present
+    sudo pacman -S --needed --noconfirm base-devel git
+    
+    local temp_dir=$(mktemp -d)
+    cd "$temp_dir"
+    
+    git clone https://aur.archlinux.org/paru.git
+    cd paru
+    makepkg -si --noconfirm
+    
+    cd - > /dev/null
+    rm -rf "$temp_dir"
+    
+    if command -v paru &>/dev/null; then
+        success "Paru installed successfully"
+    else
+        error_exit "Failed to install paru"
     fi
 }
 
-# Function to install a package from AUR using paru if not already installed
-install_aur_package() {
-    local package="$1"
-    if ! pacman -Q $package &> /dev/null; then
-        info "Installing $package from AUR..."
-        if paru -S --noconfirm --needed $package; then
-            success "$package was successfully installed from AUR."
-        else
-            error_exit "Error installing $package from AUR."
-        fi
+# Check and enable multilib repository
+enable_multilib() {
+    info "Checking multilib repository..."
+    
+    if grep -q "^\[multilib\]" /etc/pacman.conf; then
+        success "Multilib repository already enabled"
+        return 0
+    fi
+    
+    warning "Multilib repository not enabled"
+    echo -e "${YELLOW}Multilib is required for 32-bit support (gaming, wine, etc.)${NC}"
+    
+    if ask_user "Enable multilib repository?"; then
+        info "Enabling multilib repository..."
+        
+        # Backup pacman.conf
+        sudo cp /etc/pacman.conf /etc/pacman.conf.backup
+        
+        # Enable multilib
+        echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
+        
+        # Update package database
+        sudo pacman -Sy
+        
+        success "Multilib repository enabled"
     else
-        success "$package is already installed."
+        warning "Multilib repository not enabled - some packages may not be available"
     fi
 }
 
-echo -e "${BLUE}-----------------------------------------------${NC}"
-
-echo -e "${BLUE}     Starting Package Installation...          ${NC}"
-
-echo -e "${BLUE}-----------------------------------------------${NC}"
-
-# List of packages to install via pacman
-packages_pacman=("neovim" "steam" "goverlay" "lutris" "discord" "timeshift" "xorg-xhost" "htop" "yazi" "thunderbird" "fastfetch" "libreoffice-fresh" "gamemode")
-
-# List of packages to install via AUR
-packages_aur=("arch-update" "heroic-games-launcher-bin" "prismlauncher-qt5" "visual-studio-code-bin")
-
-# Ask the user if they want to install Flatpak
-echo -e "${YELLOW}Would you like to install Flatpak for additional software support? (y/n)${NC}"
-read -r install_flatpak
-if [[ "$install_flatpak" == "y" || "$install_flatpak" == "Y" ]]; then
-    echo -e "${YELLOW}Installing Flatpak...${NC}"
-    install_package "flatpak"
-    success "Flatpak was successfully installed."
-    echo -e "${YELLOW}Would you like to install recommended Flatpak applications (Bottles and EasyFlatpak)? (y/n)${NC}"
-    read -r install_recommended_flatpaks
-    if [[ "$install_recommended_flatpaks" == "y" || "$install_recommended_flatpaks" == "Y" ]]; then
-        flatpak install -y flathub com.usebottles.bottles
-        flatpak install -y flathub org.dupot.easyflatpak
-        success "Recommended Flatpak applications installed successfully."
-    else
-        echo -e "${YELLOW}Skipping recommended Flatpak applications installation.${NC}"
-    fi
-else
-    echo -e "${YELLOW}Skipping Flatpak installation.${NC}"
-fi
-
-# Install required packages via pacman
-for pkg in "${packages_pacman[@]}"; do
-    install_package "$pkg"
-done
-
-# Install required packages via AUR
-for pkg in "${packages_aur[@]}"; do
-    install_aur_package "$pkg"
-done
-
-# Step to ask user about privacy protection applications
-echo
-echo -e "${YELLOW}Would you like to install privacy-protection applications (Tor/Signal/SimpleX) ? (y/n)${NC}"
-read -r install_privacy_apps
-if [[ "$install_privacy_apps" == "y" || "$install_privacy_apps" == "Y" ]]; then
-    echo -e "${YELLOW}Installing privacy-protection applications...${NC}"
-    # Install Tor Browser, SimpleX Chat, and Signal
-    install_package "torbrowser-launcher"
-    install_aur_package "simplex-chat"
-    install_aur_package "signal-desktop"
-    success "Privacy-protection applications installed successfully."
-else
-    echo -e "${YELLOW}Skipping privacy-protection applications installation.${NC}"
-fi
-
-echo
-
-echo -e "${BLUE}-----------------------------------------------${NC}"
-
-echo -e "${BLUE}     Post-Configuration Of The Script...       ${NC}"
-
-echo -e "${BLUE}-----------------------------------------------${NC}"
-# Add user to the gamemode group
-
-echo -e "${BLUE} Add user to the gamemode group ${NC}"
-if getent group gamemode > /dev/null 2>&1; then
-    sudo usermod -aG gamemode $(whoami)
-    success "User added to the gamemode group successfully."
-else
-    info "The 'gamemode' group does not exist. Skipping user addition."
-fi
-
-echo
-
-echo -e "${BLUE}-----------------------------------------------${NC}"
-
-echo -e "${BLUE}        Cleaning Up System Cache...            ${NC}"
-
-echo -e "${BLUE}-----------------------------------------------${NC}"
-# Function to clean the system
-clean_system() {
-    info "Cleaning the system cache..."
-    echo -e "${YELLOW}Are you sure you want to clean the system cache? This will remove all cached packages. (y/n)${NC}"
-    read -r confirm_clean
-    if [[ "$confirm_clean" == "y" || "$confirm_clean" == "Y" ]]; then
-        if sudo paccache -r; then
-            success "System cache cleaned successfully."
-        else
-            error_exit "Error cleaning the system cache."
-        fi
-    else
-        info "System cache cleaning was skipped."
-    fi
+# User interaction function
+ask_user() {
+    local prompt="$1"
+    local response
+    
+    while true; do
+        echo -ne "${CYAN}$prompt (y/n): ${NC}"
+        read -r response
+        case "$response" in
+            [Yy]|[Yy][Ee][Ss]) return 0 ;;
+            [Nn]|[Nn][Oo]) return 1 ;;
+            *) echo -e "${RED}Please answer yes or no${NC}" ;;
+        esac
+    done
 }
 
-# Clean the system
-clean_system
+# Launch GUI interface
+launch_gui() {
+    info "Launching GUI interface..."
+    
+    local gui_script="$SCRIPT_DIR/autoinstallpackages_gui.py"
+    
+    if [[ ! -f "$gui_script" ]]; then
+        error "GUI script not found: $gui_script"
+        error "Make sure autoinstallpackages_gui.py is in the same directory"
+        return 1
+    fi
+    
+    # Make sure GUI dependencies are installed
+    install_gui_dependencies
+    
+    # Launch GUI
+    python3 "$gui_script"
+    local exit_code=$?
+    
+    if [[ $exit_code -eq 0 ]]; then
+        success "GUI interface completed successfully"
+    else
+        error "GUI interface exited with error code: $exit_code"
+    fi
+    
+    return $exit_code
+}
 
-echo
+# CLI mode installation
+cli_installation() {
+    info "Starting CLI installation mode..."
+    
+    # System update
+    info "Updating system..."
+    sudo pacman -Syu --noconfirm
+    success "System updated"
+    
+    echo -e "\n${YELLOW}This is a simplified CLI mode.${NC}"
+    echo -e "${CYAN}For the full experience with all features, use the GUI mode.${NC}"
+    echo -e "${YELLOW}Launch GUI with: ./autoinstallpackages.sh --gui${NC}"
+    echo
+    
+    success "CLI installation completed! Use --gui for the full interface."
+}
 
-echo -e "${BLUE}-----------------------------------------------${NC}"
+# Show help
+show_help() {
+    cat << EOF
+$SCRIPT_NAME v$SCRIPT_VERSION - Enhanced Arch Linux Post-Installation Script
 
-echo -e "${GREEN} All operations were completed successfully.  ${NC}"
+USAGE:
+    $0 [OPTIONS]
 
-echo -e "${BLUE}-----------------------------------------------${NC}"
+OPTIONS:
+    --gui           Launch graphical user interface (default)
+    --cli           Use simplified command-line mode  
+    --install-deps  Install GUI dependencies only
+    --check         Check system requirements
+    --help, -h      Show this help message
+    --version       Show version information
+
+EXAMPLES:
+    $0              # Launch GUI interface (default)
+    $0 --gui        # Launch GUI interface explicitly
+    $0 --cli        # Use simplified CLI mode
+    $0 --check      # Check system compatibility
+
+DESCRIPTION:
+    AutoInstallPackages is a modern post-installation script for Arch Linux
+    that helps you quickly install essential software packages organized by
+    categories such as gaming, development, multimedia, and more.
+
+    Features:
+    • Modern GUI interface with dark theme
+    • Automatic GPU driver detection and installation
+    • AUR support with paru
+    • System optimizations for gaming and performance
+    • ML4W dotfiles integration for Hyprland
+    • Flatpak support
+    • Automatic system cleanup
+
+REQUIREMENTS:
+    • Arch Linux
+    • Internet connection
+    • Sudo privileges
+    • Python 3 with tkinter (for GUI mode - auto-installed)
+
+REPOSITORY:
+    https://github.com/Firebleudark/Autoinstallpackages
+
+EOF
+}
+
+# Main function
+main() {
+    # Create log directory and initialize log
+    mkdir -p "$(dirname "$LOG_FILE")"
+    echo "=== AutoInstallPackages v$SCRIPT_VERSION started at $(date) ===" > "$LOG_FILE"
+    
+    # Parse command line arguments
+    case "${1:-}" in
+        --gui|"")
+            # Default behavior: launch GUI
+            print_header
+            validate_system
+            enable_multilib
+            install_paru
+            launch_gui
+            ;;
+        --cli)
+            print_header
+            validate_system
+            enable_multilib
+            install_paru
+            cli_installation
+            ;;
+        --install-deps)
+            print_header
+            validate_system
+            install_gui_dependencies
+            success "GUI dependencies installation completed"
+            ;;
+        --check)
+            print_header
+            validate_system
+            install_gui_dependencies
+            success "System check completed successfully"
+            ;;
+        --version)
+            echo "$SCRIPT_NAME v$SCRIPT_VERSION"
+            ;;
+        --help|-h)
+            show_help
+            ;;
+        *)
+            error "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+    
+    # Log completion
+    echo "=== AutoInstallPackages completed at $(date) ===" >> "$LOG_FILE"
+}
+
+# Script entry point
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
