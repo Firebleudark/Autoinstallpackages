@@ -10,7 +10,7 @@ set -euo pipefail
 
 # Script configuration
 readonly SCRIPT_NAME="AutoInstallPackages"
-readonly SCRIPT_VERSION="4.0"
+readonly SCRIPT_VERSION="4.1-1"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly LOG_FILE="/tmp/autoinstallpackages.log"
 

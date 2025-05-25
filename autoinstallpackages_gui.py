@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-AutoInstallPackages - Modern GUI Interface with Real Installation
-Version: 4.0
+AutoInstallPackages - Modern Futuristic GUI Interface
+Version: 4.1-1
 Author: Firebleudark
-Description: Dark, modern GUI for Arch Linux post-installation with REAL package installation
+Description: Futuristic, minimalist GUI for Arch Linux post-installation
 Repository: https://github.com/Firebleudark/Autoinstallpackages
 """
 
@@ -14,930 +14,1064 @@ import subprocess
 import sys
 import os
 import time
+import math
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
+import random
 
 # Version information
-VERSION = "4.0"
+VERSION = "4.1-1"
 AUTHOR = "Firebleudark"
 
-class DarkTheme:
-    """Dark theme configuration for modern UI"""
+class FuturisticTheme:
+    """Futuristic dark theme with neon accents"""
     
-    # Color palette
-    BG_PRIMARY = "#0a0a0a"
-    BG_SECONDARY = "#141414"
-    BG_TERTIARY = "#1e1e1e"
-    BG_HOVER = "#252525"
-    BG_CARD = "#1a1a1a"
+    # Base colors
+    BG_MAIN = "#0a0a0f"
+    BG_CARD = "#12121a"
+    BG_CARD_HOVER = "#1a1a25"
+    BG_SELECTED = "#1e1e2e"
     
-    ACCENT = "#00d4aa"
-    ACCENT_DARK = "#00a085"
-    ACCENT_LIGHT = "#00f5c4"
+    # Glassmorphism
+    GLASS_BG = "#151520"
+    GLASS_BORDER = "#2a2a3e"
     
+    # Neon accents
+    NEON_CYAN = "#00ffff"
+    NEON_PURPLE = "#bd00ff"
+    NEON_PINK = "#ff0080"
+    NEON_GREEN = "#00ff88"
+    
+    # Gradients
+    GRADIENT_START = "#00ffff"
+    GRADIENT_END = "#bd00ff"
+    
+    # Text colors
     TEXT_PRIMARY = "#ffffff"
-    TEXT_SECONDARY = "#b3b3b3"
-    TEXT_MUTED = "#666666"
+    TEXT_SECONDARY = "#a0a0b8"
+    TEXT_MUTED = "#606078"
     
-    SUCCESS = "#2ed573"
-    WARNING = "#ffa502"
-    ERROR = "#ff4757"
-    INFO = "#74c0fc"
+    # Status colors
+    SUCCESS = "#00ff88"
+    WARNING = "#ffaa00"
+    ERROR = "#ff0055"
+    INFO = "#00aaff"
 
-class PackageCategory:
-    """Represents a package category"""
+class AnimatedCard(tk.Frame):
+    """Animated card component with hover effects"""
     
-    def __init__(self, key: str, name: str, icon: str, description: str, 
-                 pacman_packages: List[str], aur_packages: List[str] = None):
-        self.key = key
-        self.name = name
-        self.icon = icon
-        self.description = description
-        self.pacman_packages = pacman_packages or []
-        self.aur_packages = aur_packages or []
-        self.selected = False
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.configure(bg=FuturisticTheme.BG_CARD, relief='flat')
+        self.is_hovered = False
+        self.is_selected = False
+        self.animation_id = None
+        self.glow_intensity = 0
+        
+    def bind_hover_events(self):
+        """Bind hover events for animation"""
+        self.bind("<Enter>", self._on_enter)
+        self.bind("<Leave>", self._on_leave)
+        
+        # Bind to all children
+        for child in self.winfo_children():
+            child.bind("<Enter>", self._on_enter)
+            child.bind("<Leave>", self._on_leave)
     
-    @property
-    def total_packages(self) -> int:
-        return len(self.pacman_packages) + len(self.aur_packages)
+    def _on_enter(self, event):
+        """Handle mouse enter"""
+        self.is_hovered = True
+        self._animate_glow()
+        
+    def _on_leave(self, event):
+        """Handle mouse leave"""
+        self.is_hovered = False
+        
+    def _animate_glow(self):
+        """Animate glow effect"""
+        if self.is_hovered and self.glow_intensity < 1:
+            self.glow_intensity = min(1, self.glow_intensity + 0.1)
+        elif not self.is_hovered and self.glow_intensity > 0:
+            self.glow_intensity = max(0, self.glow_intensity - 0.1)
+        
+        # Update background color
+        if self.glow_intensity > 0:
+            r, g, b = 26, 26, 37  # Base color
+            r = int(r + (10 * self.glow_intensity))
+            g = int(g + (10 * self.glow_intensity))
+            b = int(b + (15 * self.glow_intensity))
+            color = f'#{r:02x}{g:02x}{b:02x}'
+            self.configure(bg=color)
+            
+            # Update children backgrounds
+            for child in self.winfo_children():
+                if isinstance(child, (tk.Label, tk.Frame)):
+                    child.configure(bg=color)
+        
+        # Continue animation if needed
+        if self.glow_intensity > 0 or self.is_hovered:
+            self.animation_id = self.after(30, self._animate_glow)
 
-class AutoInstallGUI:
-    """Main GUI application class with REAL installation"""
+class CircularProgress(tk.Canvas):
+    """Circular progress indicator"""
+    
+    def __init__(self, parent, size=200, **kwargs):
+        super().__init__(parent, width=size, height=size, **kwargs)
+        self.size = size
+        self.configure(bg=FuturisticTheme.BG_MAIN, highlightthickness=0)
+        
+        self.progress = 0
+        self.arc_id = None
+        self.text_id = None
+        self.particles = []
+        
+        self._create_elements()
+        
+    def _create_elements(self):
+        """Create progress elements"""
+        center = self.size // 2
+        radius = self.size // 2 - 20
+        
+        # Background circle
+        self.create_oval(
+            center - radius, center - radius,
+            center + radius, center + radius,
+            outline=FuturisticTheme.GLASS_BORDER,
+            width=3
+        )
+        
+        # Progress arc
+        self.arc_id = self.create_arc(
+            center - radius, center - radius,
+            center + radius, center + radius,
+            start=90, extent=0,
+            outline=FuturisticTheme.NEON_CYAN,
+            width=8,
+            style='arc'
+        )
+        
+        # Center text
+        self.text_id = self.create_text(
+            center, center,
+            text="0%",
+            font=('Segoe UI', 24, 'bold'),
+            fill=FuturisticTheme.TEXT_PRIMARY
+        )
+        
+    def set_progress(self, value):
+        """Update progress value with animation"""
+        self.progress = max(0, min(100, value))
+        extent = -(self.progress * 3.6)  # Convert to degrees
+        
+        self.itemconfig(self.arc_id, extent=extent)
+        self.itemconfig(self.text_id, text=f"{int(self.progress)}%")
+        
+        # Add particle effect at high progress
+        if self.progress > 80:
+            self._create_particle()
+            
+    def _create_particle(self):
+        """Create particle effect"""
+        if len(self.particles) > 10:
+            return
+            
+        center = self.size // 2
+        radius = self.size // 2 - 20
+        
+        # Random position on the arc
+        angle = math.radians(90 - (self.progress * 3.6))
+        x = center + radius * math.cos(angle)
+        y = center - radius * math.sin(angle)
+        
+        particle = self.create_oval(
+            x-3, y-3, x+3, y+3,
+            fill=FuturisticTheme.NEON_CYAN,
+            outline=""
+        )
+        
+        self.particles.append(particle)
+        self._animate_particle(particle, x, y)
+        
+    def _animate_particle(self, particle, x, y):
+        """Animate particle movement"""
+        dx = random.uniform(-2, 2)
+        dy = random.uniform(-3, -1)
+        
+        def move():
+            coords = self.coords(particle)
+            if not coords or coords[1] < 0:
+                self.delete(particle)
+                self.particles.remove(particle)
+                return
+                
+            self.move(particle, dx, dy)
+            self.after(50, move)
+            
+        move()
+
+class ModernAutoInstallGUI:
+    """Modern futuristic GUI application"""
     
     def __init__(self):
         self.root = tk.Tk()
-        self.categories = self._initialize_categories()
-        self.options = {
-            'flatpak': tk.BooleanVar(),
-            'ml4w_dotfiles': tk.BooleanVar(),
-            'optimizations': tk.BooleanVar(value=True),
-            'cleanup': tk.BooleanVar(value=True)
-        }
+        self.setup_window()
         
+        # Data
+        self.categories = self._initialize_categories()
+        self.selected_categories = set()
         self.is_installing = False
         
-        # Initialize GUI
-        self._setup_window()
-        self._create_widgets()
+        # UI elements
+        self.cards = {}
+        self.current_view = "selection"  # selection, installing, complete
         
-    def _initialize_categories(self) -> Dict[str, PackageCategory]:
-        """Initialize package categories with REAL packages"""
+        # Create UI
+        self._create_main_interface()
+        
+    def setup_window(self):
+        """Configure main window with modern styling"""
+        self.root.title(f"AutoInstallPackages {VERSION}")
+        self.root.geometry("1200x800")
+        self.root.minsize(1000, 700)
+        self.root.configure(bg=FuturisticTheme.BG_MAIN)
+        
+        # Make window slightly transparent (if supported)
+        try:
+            self.root.attributes('-alpha', 0.98)
+        except:
+            pass
+            
+        # Center window
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() // 2) - (1200 // 2)
+        y = (self.root.winfo_screenheight() // 2) - (800 // 2)
+        self.root.geometry(f'1200x800+{x}+{y}')
+        
+        # Custom window styling
+        self.root.tk_setPalette(background=FuturisticTheme.BG_MAIN)
+        
+    def _initialize_categories(self) -> Dict[str, Dict[str, Any]]:
+        """Initialize package categories with icons and descriptions"""
         return {
-            'gaming': PackageCategory(
-                'gaming', 'Gaming', '🎮',
-                'Gaming platforms and tools for optimal gaming experience',
-                ['steam', 'lutris', 'gamemode', 'lib32-mesa', 'vulkan-tools'],
-                ['heroic-games-launcher-bin', 'prismlauncher-qt5']
-            ),
-            'multimedia': PackageCategory(
-                'multimedia', 'Multimedia', '🎵',
-                'Media applications and communication tools',
-                ['discord', 'thunderbird', 'vlc', 'obs-studio'],
-                ['spotify']
-            ),
-            'development': PackageCategory(
-                'development', 'Development', '💻',
-                'Development tools and code editors',
-                ['neovim', 'git', 'base-devel', 'docker', 'nodejs', 'npm'],
-                ['visual-studio-code-bin', 'github-desktop-bin']
-            ),
-            'system': PackageCategory(
-                'system', 'System Tools', '⚙️',
-                'System utilities and administration tools',
-                ['timeshift', 'htop', 'btop', 'yazi', 'fastfetch', 'tree', 'unzip'],
-                ['arch-update']
-            ),
-            'office': PackageCategory(
-                'office', 'Office Suite', '📄',
-                'Complete office productivity suite',
-                ['libreoffice-fresh', 'libreoffice-fresh-en-us'],
-                ['onlyoffice-bin']
-            ),
-            'privacy': PackageCategory(
-                'privacy', 'Privacy Tools', '🔒',
-                'Privacy and security applications',
-                ['torbrowser-launcher', 'gnupg', 'veracrypt'],
-                ['signal-desktop', 'simplex-chat']
-            )
+            'gaming': {
+                'name': 'Gaming',
+                'icon': '🎮',
+                'description': 'Ultimate gaming setup with GPU drivers',
+                'color': FuturisticTheme.NEON_PURPLE,
+                'packages': {
+                    'pacman': ['steam', 'lutris', 'gamemode', 'lib32-mesa', 'vulkan-tools'],
+                    'aur': ['heroic-games-launcher-bin', 'prismlauncher-qt5']
+                }
+            },
+            'development': {
+                'name': 'Development',
+                'icon': '⚡',
+                'description': 'Modern development environment',
+                'color': FuturisticTheme.NEON_CYAN,
+                'packages': {
+                    'pacman': ['neovim', 'git', 'docker', 'nodejs', 'npm', 'base-devel'],
+                    'aur': ['visual-studio-code-bin']
+                }
+            },
+            'multimedia': {
+                'name': 'Multimedia',
+                'icon': '🎵',
+                'description': 'Media and communication suite',
+                'color': FuturisticTheme.NEON_PINK,
+                'packages': {
+                    'pacman': ['discord', 'thunderbird', 'vlc', 'obs-studio'],
+                    'aur': ['spotify']
+                }
+            },
+            'system': {
+                'name': 'System Tools',
+                'icon': '🛠️',
+                'description': 'Essential system utilities',
+                'color': FuturisticTheme.NEON_GREEN,
+                'packages': {
+                    'pacman': ['timeshift', 'htop', 'btop', 'yazi', 'fastfetch'],
+                    'aur': ['arch-update']
+                }
+            },
+            'office': {
+                'name': 'Office Suite',
+                'icon': '📊',
+                'description': 'Productivity applications',
+                'color': '#ff6b6b',
+                'packages': {
+                    'pacman': ['libreoffice-fresh'],
+                    'aur': ['onlyoffice-bin']
+                }
+            },
+            'privacy': {
+                'name': 'Privacy',
+                'icon': '🔐',
+                'description': 'Security and privacy tools',
+                'color': '#4ecdc4',
+                'packages': {
+                    'pacman': ['torbrowser-launcher', 'gnupg', 'veracrypt'],
+                    'aur': ['signal-desktop']
+                }
+            }
         }
     
-    def _setup_window(self):
-        """Configure main window"""
-        self.root.title(f"AutoInstallPackages v{VERSION}")
-        self.root.geometry("1000x700")
-        self.root.minsize(900, 600)
-        self.root.configure(bg=DarkTheme.BG_PRIMARY)
-        
-        # Center window
-        self._center_window()
-    
-    def _center_window(self):
-        """Center window on screen"""
-        self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
-        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.root.winfo_screenheight() // 2) - (height // 2)
-        self.root.geometry(f'{width}x{height}+{x}+{y}')
-    
-    def _create_widgets(self):
-        """Create all GUI widgets"""
-        # Main container with scrolling
-        self._create_scrollable_container()
-        
+    def _create_main_interface(self):
+        """Create the main interface layout"""
         # Header
         self._create_header()
         
-        # Progress section (hidden initially)
-        self._create_progress_section()
+        # Main container
+        self.main_container = tk.Frame(self.root, bg=FuturisticTheme.BG_MAIN)
+        self.main_container.pack(fill='both', expand=True, padx=40, pady=20)
         
-        # Main content
-        self._create_main_content()
+        # Selection view (default)
+        self._create_selection_view()
         
-        # Log section (hidden initially)
-        self._create_log_section()
-    
-    def _create_scrollable_container(self):
-        """Create scrollable main container"""
-        # Canvas for scrolling
-        self.canvas = tk.Canvas(self.root, 
-                               bg=DarkTheme.BG_PRIMARY, 
-                               highlightthickness=0)
+        # Installation view (hidden initially)
+        self._create_installation_view()
         
-        # Scrollbar
-        scrollbar = tk.Scrollbar(self.root, 
-                                bg=DarkTheme.BG_SECONDARY,
-                                troughcolor=DarkTheme.BG_TERTIARY,
-                                orient="vertical", 
-                                command=self.canvas.yview)
+        # Complete view (hidden initially)
+        self._create_complete_view()
         
-        # Scrollable frame
-        self.scrollable_frame = tk.Frame(self.canvas, bg=DarkTheme.BG_PRIMARY)
+    def _create_header(self):
+        """Create futuristic header"""
+        header = tk.Frame(self.root, bg=FuturisticTheme.BG_MAIN, height=120)
+        header.pack(fill='x')
+        header.pack_propagate(False)
         
-        # Configure scrolling
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        # Logo and title container
+        title_container = tk.Frame(header, bg=FuturisticTheme.BG_MAIN)
+        title_container.place(relx=0.5, rely=0.5, anchor='center')
+        
+        # Animated logo
+        logo_canvas = tk.Canvas(
+            title_container, 
+            width=60, height=60,
+            bg=FuturisticTheme.BG_MAIN,
+            highlightthickness=0
+        )
+        logo_canvas.pack(side='left', padx=(0, 20))
+        
+        # Draw arch logo shape
+        logo_canvas.create_polygon(
+            30, 10, 50, 50, 30, 40, 10, 50,
+            fill=FuturisticTheme.NEON_CYAN,
+            outline=FuturisticTheme.NEON_PURPLE,
+            width=2
         )
         
-        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=scrollbar.set)
+        # Title with gradient effect
+        title_frame = tk.Frame(title_container, bg=FuturisticTheme.BG_MAIN)
+        title_frame.pack(side='left')
         
-        # Pack canvas and scrollbar
-        self.canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        title = tk.Label(
+            title_frame,
+            text="AutoInstallPackages",
+            font=('Segoe UI', 28, 'bold'),
+            fg=FuturisticTheme.TEXT_PRIMARY,
+            bg=FuturisticTheme.BG_MAIN
+        )
+        title.pack()
         
-        # Bind mousewheel
-        self._bind_mousewheel()
-    
-    def _bind_mousewheel(self):
-        """Bind mousewheel to canvas scrolling"""
-        def _on_mousewheel(event):
-            self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        
-        def _bind_to_mousewheel(event):
-            self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        
-        def _unbind_from_mousewheel(event):
-            self.canvas.unbind_all("<MouseWheel>")
-        
-        self.canvas.bind('<Enter>', _bind_to_mousewheel)
-        self.canvas.bind('<Leave>', _unbind_from_mousewheel)
-    
-    def _create_header(self):
-        """Create application header"""
-        header_frame = tk.Frame(self.scrollable_frame, bg=DarkTheme.BG_SECONDARY, padx=30, pady=30)
-        header_frame.pack(fill='x')
-        
-        # Title section
-        title_frame = tk.Frame(header_frame, bg=DarkTheme.BG_SECONDARY)
-        title_frame.pack(fill='x')
-        
-        # Main title
-        title_label = tk.Label(title_frame, 
-                               text="🚀 AutoInstallPackages", 
-                               bg=DarkTheme.BG_SECONDARY,
-                               fg=DarkTheme.TEXT_PRIMARY,
-                               font=('Segoe UI', 18, 'bold'))
-        title_label.pack(side='left')
+        subtitle = tk.Label(
+            title_frame,
+            text="Arch Linux Post-Installation Suite",
+            font=('Segoe UI', 11),
+            fg=FuturisticTheme.TEXT_SECONDARY,
+            bg=FuturisticTheme.BG_MAIN
+        )
+        subtitle.pack()
         
         # Version badge
-        version_label = tk.Label(title_frame,
-                                text=f"v{VERSION}",
-                                bg=DarkTheme.BG_TERTIARY,
-                                fg=DarkTheme.TEXT_SECONDARY,
-                                font=('Segoe UI', 8, 'bold'),
-                                padx=8, pady=2)
-        version_label.pack(side='left', padx=(15, 0))
+        version_label = tk.Label(
+            title_container,
+            text=f"v{VERSION}",
+            font=('Segoe UI', 9, 'bold'),
+            fg=FuturisticTheme.NEON_CYAN,
+            bg=FuturisticTheme.BG_CARD,
+            padx=10,
+            pady=3
+        )
+        version_label.pack(side='left', padx=(20, 0))
         
-        # Subtitle
-        subtitle_label = tk.Label(header_frame,
-                                  text="Modern post-installation script for Arch Linux",
-                                  bg=DarkTheme.BG_SECONDARY,
-                                  fg=DarkTheme.TEXT_SECONDARY,
-                                  font=('Segoe UI', 10))
-        subtitle_label.pack(anchor='w', pady=(10, 0))
+    def _create_selection_view(self):
+        """Create package selection view"""
+        self.selection_frame = tk.Frame(self.main_container, bg=FuturisticTheme.BG_MAIN)
+        self.selection_frame.pack(fill='both', expand=True)
         
-        # Separator line
-        separator = tk.Frame(header_frame, bg=DarkTheme.ACCENT, height=2)
-        separator.pack(fill='x', pady=(20, 0))
-    
-    def _create_progress_section(self):
-        """Create progress indicator section"""
-        self.progress_frame = tk.Frame(self.scrollable_frame, bg=DarkTheme.BG_SECONDARY, padx=20, pady=20)
-        
-        # Progress label
-        self.progress_label = tk.Label(self.progress_frame, 
-                                       text="Initializing...", 
-                                       bg=DarkTheme.BG_SECONDARY,
-                                       fg=DarkTheme.TEXT_PRIMARY,
-                                       font=('Segoe UI', 10))
-        self.progress_label.pack()
-        
-        # Progress bar frame
-        progress_bg = tk.Frame(self.progress_frame, bg=DarkTheme.BG_TERTIARY, height=10)
-        progress_bg.pack(fill='x', pady=(10, 0))
-        
-        self.progress_fill = tk.Frame(progress_bg, bg=DarkTheme.ACCENT, height=10)
-        self.progress_fill.pack(side='left', fill='y')
-        
-        # Initially hidden
-        self.progress_frame.pack_forget()
-    
-    def _create_main_content(self):
-        """Create main content area"""
-        self.main_frame = tk.Frame(self.scrollable_frame, bg=DarkTheme.BG_PRIMARY, padx=30, pady=30)
-        self.main_frame.pack(fill='both', expand=True)
-        
-        # Section title
-        section_title = tk.Label(self.main_frame,
-                                 text="Select package categories to install",
-                                 bg=DarkTheme.BG_PRIMARY,
-                                 fg=DarkTheme.TEXT_PRIMARY,
-                                 font=('Segoe UI', 14, 'bold'))
-        section_title.pack(anchor='w', pady=(0, 20))
+        # Instructions
+        instructions = tk.Label(
+            self.selection_frame,
+            text="Select packages to enhance your system",
+            font=('Segoe UI', 14),
+            fg=FuturisticTheme.TEXT_SECONDARY,
+            bg=FuturisticTheme.BG_MAIN
+        )
+        instructions.pack(pady=(0, 30))
         
         # Categories grid
-        self._create_categories_grid()
+        categories_frame = tk.Frame(self.selection_frame, bg=FuturisticTheme.BG_MAIN)
+        categories_frame.pack(fill='both', expand=True)
         
-        # Options panel
-        self._create_options_panel()
-        
-        # Action buttons
-        self._create_action_buttons()
-    
-    def _create_categories_grid(self):
-        """Create package categories grid"""
-        # Container for categories
-        categories_container = tk.Frame(self.main_frame, bg=DarkTheme.BG_PRIMARY)
-        categories_container.pack(fill='x', pady=(0, 25))
-        
-        self.category_vars = {}
-        self.category_frames = {}
-        
-        # Create category cards in 2-column grid
-        for i, (key, category) in enumerate(self.categories.items()):
-            row = i // 2
-            col = i % 2
-            
-            # Category variable
-            var = tk.BooleanVar()
-            self.category_vars[key] = var
-            
-            # Card frame
-            card_frame = tk.Frame(categories_container,
-                                 bg=DarkTheme.BG_CARD,
-                                 relief='solid',
-                                 bd=1,
-                                 padx=20, pady=15)
-            card_frame.grid(row=row, column=col, padx=8, pady=8, sticky='ew')
-            self.category_frames[key] = card_frame
-            
-            # Card header
-            header_frame = tk.Frame(card_frame, bg=DarkTheme.BG_CARD)
-            header_frame.pack(fill='x')
-            
-            # Icon and title
-            icon_title_frame = tk.Frame(header_frame, bg=DarkTheme.BG_CARD)
-            icon_title_frame.pack(side='left', fill='x', expand=True)
-            
-            # Icon
-            icon_label = tk.Label(icon_title_frame,
-                                 text=category.icon,
-                                 bg=DarkTheme.BG_CARD,
-                                 fg=DarkTheme.TEXT_PRIMARY,
-                                 font=('Segoe UI', 20))
-            icon_label.pack(side='left')
-            
-            # Title
-            title_label = tk.Label(icon_title_frame,
-                                  text=category.name,
-                                  bg=DarkTheme.BG_CARD,
-                                  fg=DarkTheme.TEXT_PRIMARY,
-                                  font=('Segoe UI', 12, 'bold'))
-            title_label.pack(side='left', padx=(12, 0))
-            
-            # Checkbox
-            checkbox = tk.Checkbutton(header_frame,
-                                     variable=var,
-                                     bg=DarkTheme.BG_CARD,
-                                     activebackground=DarkTheme.BG_CARD,
-                                     selectcolor=DarkTheme.BG_TERTIARY,
-                                     command=lambda k=key: self._on_category_toggle(k))
-            checkbox.pack(side='right')
-            
-            # Description
-            desc_label = tk.Label(card_frame,
-                                 text=category.description,
-                                 bg=DarkTheme.BG_CARD,
-                                 fg=DarkTheme.TEXT_SECONDARY,
-                                 font=('Segoe UI', 9),
-                                 wraplength=280,
-                                 justify='left')
-            desc_label.pack(anchor='w', pady=(8, 5))
-            
-            # Package count
-            count_text = f"{category.total_packages} packages"
-            count_label = tk.Label(card_frame,
-                                  text=count_text,
-                                  bg=DarkTheme.BG_CARD,
-                                  fg=DarkTheme.TEXT_MUTED,
-                                  font=('Segoe UI', 8))
-            count_label.pack(anchor='w')
-            
-            # Hover effects
-            self._bind_card_events(card_frame, key)
+        # Create category cards in a 3x2 grid
+        row, col = 0, 0
+        for key, category in self.categories.items():
+            self._create_category_card(categories_frame, key, category, row, col)
+            col += 1
+            if col > 2:
+                col = 0
+                row += 1
         
         # Configure grid weights
-        categories_container.columnconfigure(0, weight=1)
-        categories_container.columnconfigure(1, weight=1)
-    
-    def _bind_card_events(self, card_frame, key):
-        """Bind hover and click events to category cards"""
-        def on_click(event):
-            current_value = self.category_vars[key].get()
-            self.category_vars[key].set(not current_value)
-            self._on_category_toggle(key)
-        
-        # Bind events to card and all children
-        widgets_to_bind = [card_frame]
-        for child in card_frame.winfo_children():
-            widgets_to_bind.append(child)
-            for grandchild in child.winfo_children():
-                widgets_to_bind.append(grandchild)
-        
-        for widget in widgets_to_bind:
-            widget.bind("<Button-1>", on_click)
-    
-    def _create_options_panel(self):
-        """Create advanced options panel"""
-        options_frame = tk.Frame(self.main_frame,
-                                bg=DarkTheme.BG_CARD,
-                                relief='solid',
-                                bd=1,
-                                padx=20, pady=15)
-        options_frame.pack(fill='x', pady=(0, 25))
-        
-        # Title
-        options_title = tk.Label(options_frame,
-                                text="Advanced Options",
-                                bg=DarkTheme.BG_CARD,
-                                fg=DarkTheme.TEXT_PRIMARY,
-                                font=('Segoe UI', 12, 'bold'))
-        options_title.pack(anchor='w', pady=(0, 15))
-        
-        # Options data
-        options_data = [
-            ('flatpak', 'Flatpak Support', 'Install Flatpak for additional applications'),
-            ('ml4w_dotfiles', 'ML4W Dotfiles', 'Modern Hyprland/Waybar configuration'),
-            ('optimizations', 'System Optimizations', 'Gaming and performance improvements'),
-            ('cleanup', 'Auto Cleanup', 'Clean package cache after installation')
-        ]
-        
-        for key, title, description in options_data:
-            option_frame = tk.Frame(options_frame, bg=DarkTheme.BG_CARD)
-            option_frame.pack(fill='x', pady=3)
+        for i in range(3):
+            categories_frame.columnconfigure(i, weight=1, minsize=350)
+        for i in range(2):
+            categories_frame.rowconfigure(i, weight=1)
             
-            # Checkbox
-            checkbox = tk.Checkbutton(option_frame,
-                                     variable=self.options[key],
-                                     bg=DarkTheme.BG_CARD,
-                                     activebackground=DarkTheme.BG_CARD,
-                                     selectcolor=DarkTheme.BG_TERTIARY,
-                                     fg=DarkTheme.TEXT_PRIMARY,
-                                     font=('Segoe UI', 9))
-            checkbox.pack(side='left')
-            
-            # Text frame
-            text_frame = tk.Frame(option_frame, bg=DarkTheme.BG_CARD)
-            text_frame.pack(side='left', fill='x', expand=True, padx=(10, 0))
-            
-            # Title
-            title_label = tk.Label(text_frame,
-                                  text=title,
-                                  bg=DarkTheme.BG_CARD,
-                                  fg=DarkTheme.TEXT_PRIMARY,
-                                  font=('Segoe UI', 10, 'bold'))
-            title_label.pack(anchor='w')
-            
-            # Description
-            desc_label = tk.Label(text_frame,
-                                 text=description,
-                                 bg=DarkTheme.BG_CARD,
-                                 fg=DarkTheme.TEXT_SECONDARY,
-                                 font=('Segoe UI', 8))
-            desc_label.pack(anchor='w')
-    
-    def _create_action_buttons(self):
-        """Create action buttons"""
-        buttons_frame = tk.Frame(self.main_frame, bg=DarkTheme.BG_PRIMARY)
-        buttons_frame.pack(pady=25)
+        # Action buttons
+        self._create_action_buttons()
         
-        # Select all button
-        self.select_all_btn = tk.Button(buttons_frame,
-                                       text="📦 Select All",
-                                       bg=DarkTheme.BG_TERTIARY,
-                                       fg=DarkTheme.TEXT_PRIMARY,
-                                       font=('Segoe UI', 10),
-                                       relief='flat',
-                                       padx=25, pady=10,
-                                       command=self._select_all_categories)
-        self.select_all_btn.pack(side='left', padx=(0, 15))
+    def _create_category_card(self, parent, key, category, row, col):
+        """Create an animated category card"""
+        # Card container
+        card = AnimatedCard(parent)
+        card.grid(row=row, column=col, padx=15, pady=15, sticky='nsew')
+        self.cards[key] = card
         
-        # Install button
-        self.install_btn = tk.Button(buttons_frame,
-                                    text="🚀 Start Installation",
-                                    bg=DarkTheme.ACCENT,
-                                    fg=DarkTheme.BG_PRIMARY,
-                                    font=('Segoe UI', 10, 'bold'),
-                                    relief='flat',
-                                    padx=25, pady=10,
-                                    state='disabled',
-                                    command=self._start_installation)
-        self.install_btn.pack(side='left')
-    
-    def _create_log_section(self):
-        """Create installation log section"""
-        self.log_frame = tk.Frame(self.scrollable_frame, bg=DarkTheme.BG_PRIMARY, padx=30, pady=30)
+        # Inner container with padding
+        inner = tk.Frame(card, bg=FuturisticTheme.BG_CARD, padx=25, pady=20)
+        inner.pack(fill='both', expand=True)
         
-        # Title
-        log_title = tk.Label(self.log_frame,
-                             text="Installation Log",
-                             bg=DarkTheme.BG_PRIMARY,
-                             fg=DarkTheme.TEXT_PRIMARY,
-                             font=('Segoe UI', 12, 'bold'))
-        log_title.pack(anchor='w', pady=(0, 10))
+        # Header with icon and selection indicator
+        header = tk.Frame(inner, bg=FuturisticTheme.BG_CARD)
+        header.pack(fill='x', pady=(0, 15))
         
-        # Log text area
-        self.log_text = scrolledtext.ScrolledText(self.log_frame,
-                                                 height=20,
-                                                 bg=DarkTheme.BG_TERTIARY,
-                                                 fg=DarkTheme.TEXT_PRIMARY,
-                                                 insertbackground=DarkTheme.TEXT_PRIMARY,
-                                                 font=('Consolas', 9),
-                                                 wrap=tk.WORD,
-                                                 relief='solid',
-                                                 bd=1)
-        self.log_text.pack(fill='both', expand=True)
+        # Icon with glow effect
+        icon_frame = tk.Frame(header, bg=FuturisticTheme.BG_CARD)
+        icon_frame.pack(side='left')
         
-        # Configure log colors
-        self.log_text.tag_configure("INFO", foreground=DarkTheme.INFO)
-        self.log_text.tag_configure("SUCCESS", foreground=DarkTheme.SUCCESS)
-        self.log_text.tag_configure("WARNING", foreground=DarkTheme.WARNING)
-        self.log_text.tag_configure("ERROR", foreground=DarkTheme.ERROR)
+        icon_label = tk.Label(
+            icon_frame,
+            text=category['icon'],
+            font=('Segoe UI', 32),
+            bg=FuturisticTheme.BG_CARD
+        )
+        icon_label.pack()
         
-        # Initially hidden
-        self.log_frame.pack_forget()
-    
-    def _on_category_toggle(self, key):
-        """Handle category selection toggle"""
-        self.categories[key].selected = self.category_vars[key].get()
-        self._update_install_button()
-    
-    def _update_install_button(self):
-        """Update install button state and text"""
-        selected_count = sum(1 for cat in self.categories.values() if cat.selected)
+        # Title and package count
+        info_frame = tk.Frame(header, bg=FuturisticTheme.BG_CARD)
+        info_frame.pack(side='left', fill='x', expand=True, padx=(15, 0))
         
-        if selected_count == 0:
-            self.install_btn.configure(text="🚀 Start Installation", state='disabled')
-        else:
-            category_text = "category" if selected_count == 1 else "categories"
-            self.install_btn.configure(
-                text=f"🚀 Install {selected_count} {category_text}",
-                state='normal'
+        name_label = tk.Label(
+            info_frame,
+            text=category['name'],
+            font=('Segoe UI', 16, 'bold'),
+            fg=FuturisticTheme.TEXT_PRIMARY,
+            bg=FuturisticTheme.BG_CARD
+        )
+        name_label.pack(anchor='w')
+        
+        # Package count with color
+        total_packages = len(category['packages']['pacman']) + len(category['packages']['aur'])
+        count_label = tk.Label(
+            info_frame,
+            text=f"{total_packages} packages",
+            font=('Segoe UI', 10),
+            fg=category['color'],
+            bg=FuturisticTheme.BG_CARD
+        )
+        count_label.pack(anchor='w')
+        
+        # Selection indicator (checkbox styled)
+        check_frame = tk.Frame(header, bg=FuturisticTheme.BG_CARD)
+        check_frame.pack(side='right')
+        
+        check_canvas = tk.Canvas(
+            check_frame,
+            width=30, height=30,
+            bg=FuturisticTheme.BG_CARD,
+            highlightthickness=0
+        )
+        check_canvas.pack()
+        
+        # Draw custom checkbox
+        check_canvas.create_rectangle(
+            5, 5, 25, 25,
+            outline=FuturisticTheme.GLASS_BORDER,
+            width=2,
+            tags="box"
+        )
+        
+        # Checkmark (hidden initially)
+        check_canvas.create_line(
+            10, 15, 13, 18, 20, 11,
+            fill=category['color'],
+            width=3,
+            state='hidden',
+            tags="check"
+        )
+        
+        card.check_canvas = check_canvas
+        card.is_selected = False
+        
+        # Description
+        desc_label = tk.Label(
+            inner,
+            text=category['description'],
+            font=('Segoe UI', 11),
+            fg=FuturisticTheme.TEXT_SECONDARY,
+            bg=FuturisticTheme.BG_CARD,
+            wraplength=300,
+            justify='left'
+        )
+        desc_label.pack(anchor='w', pady=(0, 15))
+        
+        # Package details
+        details_frame = tk.Frame(inner, bg=FuturisticTheme.BG_CARD)
+        details_frame.pack(fill='x')
+        
+        if category['packages']['pacman']:
+            pacman_label = tk.Label(
+                details_frame,
+                text=f"📦 {len(category['packages']['pacman'])} official",
+                font=('Segoe UI', 9),
+                fg=FuturisticTheme.TEXT_MUTED,
+                bg=FuturisticTheme.BG_CARD
             )
-    
-    def _select_all_categories(self):
-        """Toggle all categories selection"""
-        all_selected = all(cat.selected for cat in self.categories.values())
+            pacman_label.pack(side='left', padx=(0, 15))
+            
+        if category['packages']['aur']:
+            aur_label = tk.Label(
+                details_frame,
+                text=f"🔧 {len(category['packages']['aur'])} AUR",
+                font=('Segoe UI', 9),
+                fg=FuturisticTheme.TEXT_MUTED,
+                bg=FuturisticTheme.BG_CARD
+            )
+            aur_label.pack(side='left')
         
-        for key, var in self.category_vars.items():
-            var.set(not all_selected)
-            self.categories[key].selected = not all_selected
+        # Bind click events
+        def toggle_selection(event=None):
+            self._toggle_category(key, card)
+            
+        card.bind("<Button-1>", toggle_selection)
+        for widget in [inner, header, icon_frame, icon_label, info_frame, 
+                      name_label, count_label, desc_label, details_frame]:
+            widget.bind("<Button-1>", toggle_selection)
+            
+        # Bind hover events
+        card.bind_hover_events()
         
+    def _toggle_category(self, key, card):
+        """Toggle category selection with animation"""
+        if card.is_selected:
+            self.selected_categories.remove(key)
+            card.check_canvas.itemconfig("check", state='hidden')
+            card.check_canvas.itemconfig("box", outline=FuturisticTheme.GLASS_BORDER)
+        else:
+            self.selected_categories.add(key)
+            card.check_canvas.itemconfig("check", state='normal')
+            card.check_canvas.itemconfig("box", outline=self.categories[key]['color'])
+            
+        card.is_selected = not card.is_selected
         self._update_install_button()
         
-        # Update button text
+    def _create_action_buttons(self):
+        """Create futuristic action buttons"""
+        button_frame = tk.Frame(self.selection_frame, bg=FuturisticTheme.BG_MAIN)
+        button_frame.pack(pady=30)
+        
+        # Select All button
+        self.select_all_btn = self._create_button(
+            button_frame,
+            "Select All",
+            FuturisticTheme.GLASS_BG,
+            command=self._toggle_all
+        )
+        self.select_all_btn.pack(side='left', padx=10)
+        
+        # Install button (glowing)
+        self.install_btn = self._create_button(
+            button_frame,
+            "Install Selected",
+            FuturisticTheme.NEON_CYAN,
+            fg=FuturisticTheme.BG_MAIN,
+            command=self._start_installation
+        )
+        self.install_btn.pack(side='left', padx=10)
+        self.install_btn.configure(state='disabled')
+        
+    def _create_button(self, parent, text, bg, fg=None, command=None):
+        """Create a modern styled button"""
+        if fg is None:
+            fg = FuturisticTheme.TEXT_PRIMARY
+            
+        btn = tk.Button(
+            parent,
+            text=text,
+            bg=bg,
+            fg=fg,
+            font=('Segoe UI', 11, 'bold'),
+            padx=30,
+            pady=12,
+            relief='flat',
+            bd=0,
+            cursor='hand2',
+            command=command
+        )
+        
+        # Hover effect
+        def on_enter(e):
+            if btn['state'] != 'disabled':
+                btn.configure(bg=self._lighten_color(bg))
+                
+        def on_leave(e):
+            if btn['state'] != 'disabled':
+                btn.configure(bg=bg)
+                
+        btn.bind("<Enter>", on_enter)
+        btn.bind("<Leave>", on_leave)
+        
+        return btn
+        
+    def _lighten_color(self, color):
+        """Lighten a color for hover effect"""
+        if color.startswith('#'):
+            # Convert hex to RGB
+            r = int(color[1:3], 16)
+            g = int(color[3:5], 16)
+            b = int(color[5:7], 16)
+            
+            # Lighten
+            r = min(255, r + 30)
+            g = min(255, g + 30)
+            b = min(255, b + 30)
+            
+            return f'#{r:02x}{g:02x}{b:02x}'
+        return color
+        
+    def _toggle_all(self):
+        """Toggle all categories"""
+        all_selected = len(self.selected_categories) == len(self.categories)
+        
         if all_selected:
-            self.select_all_btn.configure(text="📦 Select All")
+            # Deselect all
+            for key, card in self.cards.items():
+                if card.is_selected:
+                    self._toggle_category(key, card)
+            self.select_all_btn.configure(text="Select All")
         else:
-            self.select_all_btn.configure(text="📦 Deselect All")
-    
+            # Select all
+            for key, card in self.cards.items():
+                if not card.is_selected:
+                    self._toggle_category(key, card)
+            self.select_all_btn.configure(text="Deselect All")
+            
+    def _update_install_button(self):
+        """Update install button based on selection"""
+        count = len(self.selected_categories)
+        
+        if count == 0:
+            self.install_btn.configure(
+                text="Install Selected",
+                state='disabled',
+                bg=FuturisticTheme.GLASS_BG
+            )
+        else:
+            self.install_btn.configure(
+                text=f"Install {count} Categories",
+                state='normal',
+                bg=FuturisticTheme.NEON_CYAN
+            )
+            
+    def _create_installation_view(self):
+        """Create installation progress view"""
+        self.install_frame = tk.Frame(self.main_container, bg=FuturisticTheme.BG_MAIN)
+        
+        # Circular progress
+        self.progress_circle = CircularProgress(self.install_frame, size=250)
+        self.progress_circle.pack(pady=30)
+        
+        # Status text
+        self.status_label = tk.Label(
+            self.install_frame,
+            text="Initializing installation...",
+            font=('Segoe UI', 14),
+            fg=FuturisticTheme.TEXT_PRIMARY,
+            bg=FuturisticTheme.BG_MAIN
+        )
+        self.status_label.pack(pady=10)
+        
+        # Current package
+        self.package_label = tk.Label(
+            self.install_frame,
+            text="",
+            font=('Segoe UI', 11),
+            fg=FuturisticTheme.TEXT_SECONDARY,
+            bg=FuturisticTheme.BG_MAIN
+        )
+        self.package_label.pack()
+        
+        # Log area with custom styling
+        log_container = tk.Frame(self.install_frame, bg=FuturisticTheme.GLASS_BG)
+        log_container.pack(fill='both', expand=True, pady=20)
+        
+        self.log_text = scrolledtext.ScrolledText(
+            log_container,
+            height=15,
+            bg=FuturisticTheme.BG_CARD,
+            fg=FuturisticTheme.TEXT_SECONDARY,
+            font=('Consolas', 9),
+            wrap=tk.WORD,
+            relief='flat',
+            padx=15,
+            pady=15
+        )
+        self.log_text.pack(fill='both', expand=True, padx=2, pady=2)
+        
+        # Configure log tags
+        self.log_text.tag_configure("success", foreground=FuturisticTheme.SUCCESS)
+        self.log_text.tag_configure("error", foreground=FuturisticTheme.ERROR)
+        self.log_text.tag_configure("warning", foreground=FuturisticTheme.WARNING)
+        self.log_text.tag_configure("info", foreground=FuturisticTheme.INFO)
+        
+    def _create_complete_view(self):
+        """Create installation complete view"""
+        self.complete_frame = tk.Frame(self.main_container, bg=FuturisticTheme.BG_MAIN)
+        
+        # Success icon
+        success_canvas = tk.Canvas(
+            self.complete_frame,
+            width=120, height=120,
+            bg=FuturisticTheme.BG_MAIN,
+            highlightthickness=0
+        )
+        success_canvas.pack(pady=50)
+        
+        # Draw checkmark circle
+        success_canvas.create_oval(
+            10, 10, 110, 110,
+            outline=FuturisticTheme.SUCCESS,
+            width=4
+        )
+        success_canvas.create_line(
+            35, 60, 50, 75, 85, 40,
+            fill=FuturisticTheme.SUCCESS,
+            width=6,
+            capstyle='round',
+            joinstyle='round'
+        )
+        
+        # Success message
+        success_label = tk.Label(
+            self.complete_frame,
+            text="Installation Complete!",
+            font=('Segoe UI', 24, 'bold'),
+            fg=FuturisticTheme.TEXT_PRIMARY,
+            bg=FuturisticTheme.BG_MAIN
+        )
+        success_label.pack(pady=20)
+        
+        # Summary
+        self.summary_label = tk.Label(
+            self.complete_frame,
+            text="",
+            font=('Segoe UI', 12),
+            fg=FuturisticTheme.TEXT_SECONDARY,
+            bg=FuturisticTheme.BG_MAIN
+        )
+        self.summary_label.pack(pady=10)
+        
+        # Action buttons
+        button_frame = tk.Frame(self.complete_frame, bg=FuturisticTheme.BG_MAIN)
+        button_frame.pack(pady=30)
+        
+        restart_btn = self._create_button(
+            button_frame,
+            "Restart System",
+            FuturisticTheme.NEON_GREEN,
+            fg=FuturisticTheme.BG_MAIN,
+            command=self._restart_system
+        )
+        restart_btn.pack(side='left', padx=10)
+        
+        close_btn = self._create_button(
+            button_frame,
+            "Close",
+            FuturisticTheme.GLASS_BG,
+            command=self.root.quit
+        )
+        close_btn.pack(side='left', padx=10)
+        
     def _start_installation(self):
-        """Start the REAL installation process"""
-        if self.is_installing:
+        """Start the installation process"""
+        if not self.selected_categories:
             return
+            
+        # Confirm
+        categories_text = "\n".join(f"• {self.categories[key]['name']}" for key in self.selected_categories)
         
-        selected_categories = [cat for cat in self.categories.values() if cat.selected]
+        result = messagebox.askyesno(
+            "Confirm Installation",
+            f"Install the following categories?\n\n{categories_text}\n\nThis will install real packages on your system!"
+        )
         
-        if not selected_categories:
-            messagebox.showwarning("No Selection", "Please select at least one category.")
+        if not result:
             return
-        
-        # Confirmation dialog
-        category_names = [cat.name for cat in selected_categories]
-        total_packages = sum(cat.total_packages for cat in selected_categories)
-        
-        message = f"This will REALLY install {len(selected_categories)} categories with approximately {total_packages} packages!\n\n"
-        message += "Selected categories:\n"
-        message += "\n".join(f"• {name}" for name in category_names)
-        message += "\n\n⚠️ THIS IS REAL INSTALLATION! Continue?"
-        
-        if not messagebox.askyesno("Confirm REAL Installation", message):
-            return
-        
-        # Start installation
-        self.is_installing = True
-        self._show_installation_view()
+            
+        # Switch view
+        self.selection_frame.pack_forget()
+        self.install_frame.pack(fill='both', expand=True)
         
         # Start installation thread
+        self.is_installing = True
         install_thread = threading.Thread(
-            target=self._run_real_installation,  # REAL installation function
-            args=(selected_categories,),
+            target=self._run_installation,
             daemon=True
         )
         install_thread.start()
-    
-    def _show_installation_view(self):
-        """Switch to installation view"""
-        # Hide main content
-        self.main_frame.pack_forget()
         
-        # Show progress and logs
-        self.progress_frame.pack(fill='x', pady=(0, 20))
-        self.log_frame.pack(fill='both', expand=True)
-        
-        # Disable buttons
-        self.install_btn.configure(state='disabled')
-        self.select_all_btn.configure(state='disabled')
-    
-    def _run_real_installation(self, selected_categories):
-        """Run REAL installation process"""
+    def _run_installation(self):
+        """Run the actual installation process"""
         try:
-            total_steps = 5 + len(selected_categories)
+            total_steps = len(self.selected_categories) + 4  # +4 for prep steps
             current_step = 0
             
-            # Step 1: System validation
-            self.root.after(0, self._update_progress, current_step, total_steps, "Validating system...")
-            self.root.after(0, self._add_log, "[INFO] Validating system requirements...", "INFO")
-            
-            if not self._validate_system():
-                raise Exception("System validation failed")
-            
-            self.root.after(0, self._add_log, "[SUCCESS] System validation passed", "SUCCESS")
-            current_step += 1
-            
-            # Step 2: System update
-            self.root.after(0, self._update_progress, current_step, total_steps, "Updating system...")
-            self.root.after(0, self._add_log, "[INFO] Updating system packages...", "INFO")
+            # System update
+            self._update_ui(current_step, total_steps, "Updating system packages...")
+            self._log("Updating system packages...", "info")
             
             if self._run_command("sudo pacman -Syu --noconfirm"):
-                self.root.after(0, self._add_log, "[SUCCESS] System updated successfully", "SUCCESS")
+                self._log("System updated successfully", "success")
             else:
-                self.root.after(0, self._add_log, "[WARNING] System update had issues", "WARNING")
-            
+                self._log("System update failed", "warning")
+                
             current_step += 1
             
-            # Step 3: Install paru if needed
-            self.root.after(0, self._update_progress, current_step, total_steps, "Installing AUR helper...")
-            self.root.after(0, self._add_log, "[INFO] Checking for paru AUR helper...", "INFO")
-            
-            if not self._check_paru():
+            # Install paru if needed
+            self._update_ui(current_step, total_steps, "Checking AUR helper...")
+            if not self._check_command("paru"):
                 self._install_paru()
-            
-            self.root.after(0, self._add_log, "[SUCCESS] AUR helper ready", "SUCCESS")
+            else:
+                self._log("Paru AUR helper already installed", "success")
+                
             current_step += 1
             
-            # Step 4: GPU drivers
-            self.root.after(0, self._update_progress, current_step, total_steps, "Installing GPU drivers...")
-            self.root.after(0, self._add_log, "[INFO] Detecting and installing GPU drivers...", "INFO")
-            
+            # GPU drivers
+            self._update_ui(current_step, total_steps, "Installing GPU drivers...")
             self._install_gpu_drivers()
-            self.root.after(0, self._add_log, "[SUCCESS] GPU drivers installed", "SUCCESS")
             current_step += 1
             
-            # Step 5-N: Install selected categories
-            for category in selected_categories:
-                self.root.after(0, self._update_progress, current_step, total_steps, f"Installing {category.name}...")
-                self.root.after(0, self._add_log, f"[INFO] Installing {category.name} packages...", "INFO")
+            # Install selected categories
+            for key in self.selected_categories:
+                category = self.categories[key]
+                self._update_ui(current_step, total_steps, f"Installing {category['name']}...")
+                self._log(f"\nInstalling {category['name']} packages...", "info")
                 
-                # Install pacman packages
-                if category.pacman_packages:
-                    cmd = f"sudo pacman -S --needed --noconfirm {' '.join(category.pacman_packages)}"
+                # Pacman packages
+                if category['packages']['pacman']:
+                    cmd = f"sudo pacman -S --needed --noconfirm {' '.join(category['packages']['pacman'])}"
                     if self._run_command(cmd):
-                        self.root.after(0, self._add_log, f"[SUCCESS] {category.name} pacman packages installed", "SUCCESS")
+                        self._log(f"{category['name']} official packages installed", "success")
                     else:
-                        self.root.after(0, self._add_log, f"[WARNING] Some {category.name} pacman packages failed", "WARNING")
-                
-                # Install AUR packages
-                if category.aur_packages:
-                    cmd = f"paru -S --needed --noconfirm {' '.join(category.aur_packages)}"
+                        self._log(f"Some {category['name']} packages failed", "warning")
+                        
+                # AUR packages
+                if category['packages']['aur']:
+                    cmd = f"paru -S --needed --noconfirm {' '.join(category['packages']['aur'])}"
                     if self._run_command(cmd):
-                        self.root.after(0, self._add_log, f"[SUCCESS] {category.name} AUR packages installed", "SUCCESS")
+                        self._log(f"{category['name']} AUR packages installed", "success")
                     else:
-                        self.root.after(0, self._add_log, f"[WARNING] Some {category.name} AUR packages failed", "WARNING")
-                
+                        self._log(f"Some {category['name']} AUR packages failed", "warning")
+                        
                 current_step += 1
+                
+            # Cleanup
+            self._update_ui(current_step, total_steps, "Cleaning up...")
+            self._cleanup_system()
             
-            # Optional installations
-            if self.options['optimizations'].get():
-                self.root.after(0, self._update_progress, current_step, total_steps, "Applying optimizations...")
-                self.root.after(0, self._add_log, "[INFO] Applying system optimizations...", "INFO")
-                self._apply_optimizations()
-                self.root.after(0, self._add_log, "[SUCCESS] System optimizations applied", "SUCCESS")
-            
-            if self.options['cleanup'].get():
-                self.root.after(0, self._update_progress, current_step, total_steps, "Cleaning system...")
-                self.root.after(0, self._add_log, "[INFO] Cleaning system...", "INFO")
-                self._cleanup_system()
-                self.root.after(0, self._add_log, "[SUCCESS] System cleaned", "SUCCESS")
-            
-            current_step += 1
-            
-            # Installation completed
-            self.root.after(0, self._installation_completed)
+            # Complete
+            self._installation_complete()
             
         except Exception as e:
-            self.root.after(0, self._add_log, f"[ERROR] Installation failed: {str(e)}", "ERROR")
-            self.root.after(0, self._installation_failed, str(e))
-    
-    def _validate_system(self) -> bool:
-        """Validate system requirements"""
+            self._log(f"Installation error: {str(e)}", "error")
+            self.root.after(0, messagebox.showerror, "Installation Failed", str(e))
+            
+    def _update_ui(self, current, total, status):
+        """Update UI during installation"""
+        progress = (current / total) * 100
+        
+        self.root.after(0, self.progress_circle.set_progress, progress)
+        self.root.after(0, self.status_label.configure, {'text': status})
+        
+    def _log(self, message, tag="info"):
+        """Add message to log"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        formatted_message = f"[{timestamp}] {message}\n"
+        
+        self.root.after(0, self._append_log, formatted_message, tag)
+        
+    def _append_log(self, message, tag):
+        """Append to log widget"""
+        self.log_text.insert(tk.END, message, tag)
+        self.log_text.see(tk.END)
+        
+    def _run_command(self, cmd):
+        """Execute system command"""
         try:
-            # Check Arch Linux
-            with open('/etc/os-release', 'r') as f:
-                if 'Arch Linux' not in f.read():
-                    return False
-            
-            # Check if not root
-            if os.geteuid() == 0:
-                return False
-            
-            # Check internet connection
-            result = subprocess.run(['ping', '-c', '1', 'google.com'], 
-                                  capture_output=True, timeout=5)
-            return result.returncode == 0
-            
-        except:
-            return False
-    
-    def _run_command(self, cmd: str) -> bool:
-        """Run a system command and log output"""
-        try:
-            self.root.after(0, self._add_log, f"[CMD] {cmd}", "INFO")
+            self._log(f"$ {cmd}", "info")
             
             process = subprocess.Popen(
                 cmd, shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                bufsize=1
+                universal_newlines=True
             )
             
-            # Read output line by line and log it
             for line in process.stdout:
-                line = line.strip()
-                if line:
-                    self.root.after(0, self._add_log, line, "INFO")
-            
+                if line.strip():
+                    self._log(line.strip(), "info")
+                    
             process.wait()
             return process.returncode == 0
             
         except Exception as e:
-            self.root.after(0, self._add_log, f"[ERROR] Command failed: {str(e)}", "ERROR")
+            self._log(f"Command error: {str(e)}", "error")
             return False
-    
-    def _check_paru(self) -> bool:
-        """Check if paru is installed"""
+            
+    def _check_command(self, cmd):
+        """Check if a command exists"""
         try:
-            result = subprocess.run(['which', 'paru'], capture_output=True)
-            return result.returncode == 0
+            subprocess.run(['which', cmd], check=True, capture_output=True)
+            return True
         except:
             return False
-    
+            
     def _install_paru(self):
         """Install paru AUR helper"""
-        self.root.after(0, self._add_log, "[INFO] Installing paru AUR helper...", "INFO")
+        self._log("Installing paru AUR helper...", "info")
         
-        # Install base-devel first
-        self._run_command("sudo pacman -S --needed --noconfirm base-devel git")
-        
-        # Clone and build paru
-        temp_dir = "/tmp/paru_install"
         commands = [
-            f"rm -rf {temp_dir}",
-            f"git clone https://aur.archlinux.org/paru.git {temp_dir}",
-            f"cd {temp_dir} && makepkg -si --noconfirm"
+            "sudo pacman -S --needed --noconfirm base-devel git",
+            "cd /tmp && rm -rf paru",
+            "cd /tmp && git clone https://aur.archlinux.org/paru.git",
+            "cd /tmp/paru && makepkg -si --noconfirm"
         ]
         
         for cmd in commands:
             if not self._run_command(cmd):
-                self.root.after(0, self._add_log, "[WARNING] Paru installation may have issues", "WARNING")
-                break
+                self._log("Paru installation failed", "error")
+                return
+                
+        self._log("Paru installed successfully", "success")
         
-        # Cleanup
-        self._run_command(f"rm -rf {temp_dir}")
-    
     def _install_gpu_drivers(self):
         """Detect and install GPU drivers"""
+        self._log("Detecting GPU...", "info")
+        
         try:
-            # Get GPU info
             result = subprocess.run(['lspci'], capture_output=True, text=True)
             gpu_info = result.stdout.lower()
             
-            drivers = []
-            
-            if 'amd' in gpu_info or 'radeon' in gpu_info:
-                self.root.after(0, self._add_log, "[INFO] AMD GPU detected", "INFO")
-                drivers = ['mesa', 'lib32-mesa', 'vulkan-radeon', 'lib32-vulkan-radeon']
-            elif 'nvidia' in gpu_info:
-                self.root.after(0, self._add_log, "[INFO] NVIDIA GPU detected", "INFO")
-                drivers = ['nvidia', 'nvidia-utils', 'lib32-nvidia-utils']
+            if 'nvidia' in gpu_info:
+                self._log("NVIDIA GPU detected", "info")
+                self._run_command("sudo pacman -S --needed --noconfirm nvidia nvidia-utils lib32-nvidia-utils")
+            elif 'amd' in gpu_info or 'radeon' in gpu_info:
+                self._log("AMD GPU detected", "info")
+                self._run_command("sudo pacman -S --needed --noconfirm mesa lib32-mesa vulkan-radeon lib32-vulkan-radeon")
             elif 'intel' in gpu_info:
-                self.root.after(0, self._add_log, "[INFO] Intel GPU detected", "INFO")
-                drivers = ['mesa', 'lib32-mesa', 'vulkan-intel', 'lib32-vulkan-intel']
-            
-            if drivers:
-                cmd = f"sudo pacman -S --needed --noconfirm {' '.join(drivers)}"
-                self._run_command(cmd)
+                self._log("Intel GPU detected", "info")
+                self._run_command("sudo pacman -S --needed --noconfirm mesa lib32-mesa vulkan-intel lib32-vulkan-intel")
             else:
-                self.root.after(0, self._add_log, "[INFO] No specific GPU drivers needed", "INFO")
+                self._log("No specific GPU drivers needed", "info")
                 
         except Exception as e:
-            self.root.after(0, self._add_log, f"[WARNING] GPU detection failed: {str(e)}", "WARNING")
-    
-    def _apply_optimizations(self):
-        """Apply system optimizations"""
-        try:
-            # Enable parallel downloads
-            self._run_command("sudo sed -i 's/#ParallelDownloads = 5/ParallelDownloads = 10/' /etc/pacman.conf")
+            self._log(f"GPU detection error: {str(e)}", "warning")
             
-            # Enable multicore compilation
-            cores = os.cpu_count()
-            self._run_command(f"sudo sed -i 's/#MAKEFLAGS=\"-j2\"/MAKEFLAGS=\"-j{cores}\"/' /etc/makepkg.conf")
-            
-            # Add user to gamemode group if gamemode is installed
-            username = os.getenv('USER')
-            if username:
-                self._run_command(f"sudo usermod -aG gamemode {username}")
-                
-        except Exception as e:
-            self.root.after(0, self._add_log, f"[WARNING] Some optimizations failed: {str(e)}", "WARNING")
-    
     def _cleanup_system(self):
-        """Clean up system"""
-        try:
-            # Clean package cache
-            self._run_command("sudo paccache -r")
+        """Clean up system after installation"""
+        self._log("Cleaning package cache...", "info")
+        self._run_command("sudo paccache -r")
+        
+        # Check for orphans
+        result = subprocess.run(['pacman', '-Qtdq'], capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip():
+            self._log("Removing orphaned packages...", "info")
+            self._run_command(f"sudo pacman -Rns --noconfirm {result.stdout.strip()}")
+        else:
+            self._log("No orphaned packages found", "info")
             
-            # Clean AUR cache if paru is available
-            if self._check_paru():
-                self._run_command("paru -Sc --noconfirm")
-            
-            # Remove orphaned packages
-            result = subprocess.run(['pacman', '-Qtdq'], capture_output=True, text=True)
-            if result.returncode == 0 and result.stdout.strip():
-                orphans = result.stdout.strip()
-                self._run_command(f"sudo pacman -Rns --noconfirm {orphans}")
-            else:
-                self.root.after(0, self._add_log, "[INFO] No orphaned packages found", "INFO")
-                
-        except Exception as e:
-            self.root.after(0, self._add_log, f"[WARNING] Cleanup had issues: {str(e)}", "WARNING")
-    
-    def _update_progress(self, current, total, text):
-        """Update progress bar and text"""
-        progress_percent = (current / total) * 100
-        
-        # Update progress bar width
-        total_width = 500  # Assuming canvas width
-        fill_width = int((progress_percent / 100) * total_width)
-        self.progress_fill.configure(width=fill_width)
-        
-        # Update text
-        self.progress_label.configure(text=f"{text} ({int(progress_percent)}%)")
-    
-    def _add_log(self, message, log_type):
-        """Add message to log"""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        log_line = f"[{timestamp}] {message}\n"
-        
-        self.log_text.insert(tk.END, log_line, log_type)
-        self.log_text.see(tk.END)
-    
-    def _installation_completed(self):
-        """Handle successful installation completion"""
+    def _installation_complete(self):
+        """Handle installation completion"""
         self.is_installing = False
-        self.progress_label.configure(text="Installation completed successfully! (100%)")
         
-        messagebox.showinfo(
-            "Installation Complete",
-            "🎉 Installation completed successfully!\n\n"
-            "Your Arch Linux system has been enhanced with the selected packages.\n"
-            "System restart is recommended to apply all changes."
+        # Calculate summary
+        total_categories = len(self.selected_categories)
+        category_names = [self.categories[key]['name'] for key in self.selected_categories]
+        
+        # Switch to complete view
+        self.root.after(0, self._show_complete_view, total_categories, category_names)
+        
+    def _show_complete_view(self, total_categories, category_names):
+        """Show the completion view"""
+        self.install_frame.pack_forget()
+        self.complete_frame.pack(fill='both', expand=True)
+        
+        summary = f"Successfully installed {total_categories} categories:\n"
+        summary += "\n".join(f"✓ {name}" for name in category_names)
+        self.summary_label.configure(text=summary)
+        
+    def _restart_system(self):
+        """Restart the system"""
+        result = messagebox.askyesno(
+            "Restart System",
+            "Are you sure you want to restart now?\n\nMake sure to save all your work."
         )
         
-        # Ask for restart
-        if messagebox.askyesno("Restart System", "Would you like to restart your system now?"):
-            self._add_log("[INFO] Restarting system...", "INFO")
-            try:
-                subprocess.run(["sudo", "reboot"], check=True)
-            except:
-                messagebox.showinfo("Manual Restart", "Please restart your system manually.")
-    
-    def _installation_failed(self, error_message):
-        """Handle installation failure"""
-        self.is_installing = False
-        messagebox.showerror(
-            "Installation Failed",
-            f"An error occurred during installation:\n\n{error_message}\n\n"
-            "Check the installation log for more details."
-        )
-    
-    def _check_system_requirements(self):
+        if result:
+            subprocess.run(["sudo", "reboot"])
+            
+    def run(self):
+        """Start the application"""
+        # Check system requirements
+        if not self._check_system():
+            return
+            
+        # Start main loop
+        self.root.mainloop()
+        
+    def _check_system(self):
         """Check if system meets requirements"""
-        errors = []
-        
         # Check if Arch Linux
         try:
             with open('/etc/os-release', 'r') as f:
                 if 'Arch Linux' not in f.read():
-                    errors.append("This application is only for Arch Linux")
+                    messagebox.showerror(
+                        "System Error",
+                        "This application is designed for Arch Linux only."
+                    )
+                    return False
         except:
-            errors.append("Cannot verify operating system")
-        
-        # Check if running as root
+            messagebox.showerror(
+                "System Error",
+                "Cannot verify operating system."
+            )
+            return False
+            
+        # Check if not root
         if os.geteuid() == 0:
-            errors.append("Do not run this application as root")
-        
-        # Check internet connection
-        try:
-            subprocess.run(['ping', '-c', '1', 'google.com'], 
-                          check=True, capture_output=True, timeout=5)
-        except:
-            errors.append("Internet connection required")
-        
-        return errors
-    
-    def run(self):
-        """Start the GUI application"""
-        # System requirements check
-        errors = self._check_system_requirements()
-        if errors:
-            error_message = "System requirements not met:\n\n" + "\n".join(f"• {error}" for error in errors)
-            messagebox.showerror("System Check Failed", error_message)
+            messagebox.showerror(
+                "Permission Error",
+                "Do not run this application as root.\nPlease run as a regular user with sudo privileges."
+            )
             return False
-        
-        # Start GUI
-        try:
-            self.root.mainloop()
-            return True
-        except KeyboardInterrupt:
-            print("\nApplication interrupted by user")
-            return False
-        except Exception as e:
-            messagebox.showerror("Application Error", f"An unexpected error occurred:\n\n{str(e)}")
-            return False
+            
+        return True
 
 def main():
     """Main entry point"""
-    print("🚀 Starting AutoInstallPackages GUI with REAL installation...")
-    
-    try:
-        app = AutoInstallGUI()
-        success = app.run()
-        
-        if success:
-            print("✅ GUI application completed successfully")
-        else:
-            print("❌ GUI application exited with errors")
-            return 1
-            
-    except Exception as e:
-        print(f"❌ Critical error: {e}")
-        return 1
-    
-    return 0
+    app = ModernAutoInstallGUI()
+    app.run()
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
